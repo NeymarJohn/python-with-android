@@ -114,8 +114,7 @@ def make_pythonzip():
         fn = fn[len(d):]
         if fn.startswith('/site-packages/') or \
             fn.startswith('/config/') or \
-            fn.startswith('/lib-dynload/') or \
-            fn.startswith('/libpymodules.so'):
+            fn.startswith('/lib-dynload/'):
                 return False
         return fn
 
@@ -238,12 +237,7 @@ def make_package(args):
         args=args)
 
     # Update the project to a recent version.
-    try:
-        subprocess.call([ANDROID, 'update', 'project', '-p', '.', '-t', 'android-8'])
-    except IOError:
-        print 'An error occured while calling', ANDROID, 'update'
-        print 'Your PATH must include android tools.'
-        sys.exit(-1)
+    subprocess.call([ANDROID, 'update', 'project', '-p', '.', '-t', 'android-8'])
 
     # Delete the old assets.
     if os.path.exists('assets/public.mp3'):
@@ -270,12 +264,7 @@ def make_package(args):
     shutil.copy(args.presplash or default_presplash, 'res/drawable/presplash.jpg')
 
     # Build.
-    try:
-        map(lambda arg: subprocess.call([ANT, arg]), args.command)
-    except IOError:
-        print 'An error occured while calling', ANT
-        print 'Did you install ant on your system ?'
-        sys.exit(-1)
+    map(lambda arg: subprocess.call([ANT, arg]), args.command)
 
 if __name__ == '__main__':
     import argparse

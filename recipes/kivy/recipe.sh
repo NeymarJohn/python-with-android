@@ -14,7 +14,6 @@ function prebuild_kivy() {
 function build_kivy() {
 	if [ -d "$BUILD_PATH/python-install/lib/python2.7/site-packages/kivy" ]; then
 		return
-		true
 	fi
 
 	cd $BUILD_kivy
@@ -22,7 +21,6 @@ function build_kivy() {
 	push_arm
 
 	export LDFLAGS="$LDFLAGS -L$LIBS_PATH"
-	export LDSHARED="$LIBLINK"
 
 	# fake try to be able to cythonize generated files
 	$BUILD_PATH/python-install/bin/python.host setup.py build_ext
@@ -33,7 +31,6 @@ function build_kivy() {
 
 	try rm -rf $BUILD_PATH/python-install/lib/python*/site-packages/kivy/tools
 
-	unset LDSHARED
 	pop_arm
 }
 
