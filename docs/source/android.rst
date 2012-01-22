@@ -95,15 +95,6 @@ android
 
    Hides the soft keyboard.
 
-.. function:: wifi_scanner_enable()
-
-   Enables wifi scanning. ACCESS_WIFI_STATE and CHANGE_WIFI_STATE permissions required.
-
-.. function:: wifi_scan()
-
-   Returns tuple of (SSID, BSSID, SignalLevel) for each visible WiFi access point.
-
-
 android_mixer
 ~~~~~~~~~~~~~
 
