@@ -188,7 +188,7 @@ function run_prepare() {
 		exit -1
 	fi
 	if [ ! -d "$ANDROIDNDK" ]; then
-		echo "ANDROIDNDK=$ANDROIDNDK"
+		echo "ANDROIDNDK=$ANDROIDSDK"
 		error "ANDROIDNDK path is invalid, it must be a directory. abort."
 		exit 1
 	fi
@@ -516,7 +516,6 @@ function run_distribute() {
 	try rm -rf distutils/tests
 	try rm -rf email/test
 	try rm -rf bsddb/test
-	try rm -rf distutils
 	try rm -rf config/libpython*.a
 	try rm -rf config/python.o
 	try rm -rf curses
