@@ -10,7 +10,7 @@
 MODULES=$MODULES
 
 # Paths
-ROOT_PATH="$(dirname $(python -c 'import os,sys;print os.path.realpath(sys.argv[1])' $0))"
+ROOT_PATH="$(dirname $(readlink -f $0))"
 RECIPES_PATH="$ROOT_PATH/recipes"
 BUILD_PATH="$ROOT_PATH/build"
 LIBS_PATH="$ROOT_PATH/build/libs"
@@ -23,38 +23,6 @@ DIST_PATH="$ROOT_PATH/dist/default"
 export LIBLINK_PATH="$BUILD_PATH/objects"
 export LIBLINK="$ROOT_PATH/src/tools/liblink"
 export BIGLINK="$ROOT_PATH/src/tools/biglink"
-
-MD5SUM=$(which md5sum)
-if [ "X$MD5SUM" == "X" ]; then
-	MD5SUM=$(which md5)
-	if [ "X$MD5SUM" == "X" ]; then
-		echo "Error: you need at least md5sum or md5 installed."
-		exit 1
-	else
-		MD5SUM="$MD5SUM -r"
-	fi
-fi
-
-WGET=$(which wget)
-if [ "X$WGET" == "X" ]; then
-	WGET=$(which curl)
-	if [ "X$WGET" == "X" ]; then
-		echo "Error: you need at least wget or curl installed."
-		exit 1
-	else
-		WGET="$WGET -L -O"
-	fi
-fi
-
-case $OSTYPE in
-	darwin*)
-		SED="sed -i ''"
-		;;
-	*)
-		SED="sed -i"
-		;;
-esac
-
 
 # Internals
 CRED="\x1b[31;01m"
@@ -71,7 +39,7 @@ if [ $? -eq 0 ]; then
 	export NDK_CCACHE="ccache"
 fi
 
-set -x
+#set -x
 
 function try () {
     "$@" || exit -1
@@ -111,7 +79,6 @@ function push_arm() {
 	export OLD_PATH=$PATH
 	export OLD_CFLAGS=$CFLAGS
 	export OLD_CXXFLAGS=$CXXFLAGS
-	export OLD_LDFLAGS=$LDFLAGS
 	export OLD_CC=$CC
 	export OLD_CXX=$CXX
 	export OLD_AR=$AR
@@ -124,23 +91,14 @@ function push_arm() {
 	#export OFLAG="-Os"
 	#export OFLAG="-O2"
 
-	export CFLAGS="-mandroid $OFLAG -fomit-frame-pointer --sysroot $NDKPLATFORM -fPIC"
-	if [ $ARCH == "armeabi-v7a" ]; then
+	export CFLAGS="-mandroid $OFLAG -fomit-frame-pointer --sysroot $NDKPLATFORM"
+	if [ "X$ARCH" == "Xarmeabi-v7a" ]; then
 		CFLAGS+=" -march=armv7-a -mfloat-abi=softfp -mfpu=vfp -mthumb"
 	fi
 	export CXXFLAGS="$CFLAGS"
 
-	# that could be done only for darwin platform, but it doesn't hurt.
-	export LDFLAGS="-lm"
-
 	# this must be something depending of the API level of Android
-	PYPLATFORM=$(python -c 'import sys; print sys.platform')
-	if [ "$PYPLATFORM" == "linux2" ]; then
-		PYPLATFORM="linux"
-	elif [ "$PYPLATFORM" == "linux3" ]; then
-		PYPLATFORM="linux"
-	fi
-	export PATH="$ANDROIDNDK/toolchains/arm-eabi-4.4.0/prebuilt/$PYPLATFORM-x86/bin/:$ANDROIDNDK:$ANDROIDSDK/tools:$PATH"
+	export PATH="$ANDROIDNDK/toolchains/arm-eabi-4.4.0/prebuilt/linux-x86/bin/:$ANDROIDNDK:$ANDROIDSDK/tools:$PATH"
 	if [ "X${ANDROIDNDKVER:0:2}" == "Xr7" ] || [ "X$ANDROIDNDKVER" == "Xr8" ]; then
 		export TOOLCHAIN_PREFIX=arm-linux-androideabi
 		export TOOLCHAIN_VERSION=4.4.3
@@ -152,7 +110,7 @@ function push_arm() {
 		exit -1
 	fi
 
-	export PATH="$ANDROIDNDK/toolchains/$TOOLCHAIN_PREFIX-$TOOLCHAIN_VERSION/prebuilt/$PYPLATFORM-x86/bin/:$ANDROIDNDK:$ANDROIDSDK/tools:$PATH"
+	export PATH="$ANDROIDNDK/toolchains/$TOOLCHAIN_PREFIX-$TOOLCHAIN_VERSION/prebuilt/linux-x86/bin/:$ANDROIDNDK:$ANDROIDSDK/tools:$PATH"
 
 	# search compiler in the path, to fail now instead of later.
 	CC=$(which $TOOLCHAIN_PREFIX-gcc)
@@ -186,7 +144,6 @@ function pop_arm() {
 	export PATH=$OLD_PATH
 	export CFLAGS=$OLD_CFLAGS
 	export CXXFLAGS=$OLD_CXXFLAGS
-	export LDFLAGS=$OLD_LDFLAGS
 	export CC=$OLD_CC
 	export CXX=$OLD_CXX
 	export AR=$OLD_AR
@@ -262,7 +219,7 @@ function run_prepare() {
 
 	info "Check mandatory tools"
 	# ensure that some tools are existing
-	for tool in tar bzip2 unzip make gcc g++; do
+	for tool in md5sum tar bzip2 unzip make gcc g++; do
 		which $tool &>/dev/null
 		if [ $? -ne 0 ]; then
 			error "Tool $tool is missing"
@@ -317,7 +274,7 @@ function in_array() {
 
 function run_source_modules() {
 	needed=($MODULES)
-	declare -a processed
+	declare -A processed
 	order=()
 
 	while [ ${#needed[*]} -ne 0 ]; do
@@ -328,14 +285,13 @@ function run_source_modules() {
 		needed=( ${needed[@]} )
 
 		# check if the module have already been declared
-		in_array $module "${processed[@]}"
-		if [ $? -ne 255 ]; then
+		if [[ ${processed[$module]} ]]; then
 			debug "Ignored $module, already processed"
 			continue;
 		fi
 
 		# add this module as done
-		processed=( ${processed[@]} $module )
+		processed[$module]=1
 
 		# append our module at the end only if we are not exist yet
 		in_array $module "${order[@]}"
@@ -413,7 +369,7 @@ function run_get_packages() {
 		if [ -f $filename ]; then
 			if [ -n "$md5" ]; then
 				# check if the md5 is correct
-				current_md5=$($MD5SUM $filename | cut -d\  -f1)
+				current_md5=$(md5sum $filename | cut -d\  -f1)
 				if [ "X$current_md5" == "X$md5" ]; then
 					# correct, no need to download
 					do_download=0
@@ -430,14 +386,14 @@ function run_get_packages() {
 		# download if needed
 		if [ $do_download -eq 1 ]; then
 			info "Downloading $url"
-			try $WGET $url
+			try wget $url
 		else
 			debug "Module $module already downloaded"
 		fi
 
 		# check md5
 		if [ -n "$md5" ]; then
-			current_md5=$($MD5SUM $filename | cut -d\  -f1)
+			current_md5=$(md5sum $filename | cut -d\  -f1)
 			if [ "X$current_md5" != "X$md5" ]; then
 				error "File $filename md5 check failed (got $current_md5 instead of $md5)."
 				error "Ensure the file is correctly downloaded, and update MD5S_$module"
@@ -615,19 +571,13 @@ function arm_deduplicate() {
 
 
 # Do the build
-while getopts ":hvlfm:d:s" opt; do
+while getopts ":hvlfm:d:" opt; do
 	case $opt in
 		h)
 			usage
 			;;
 		l)
 			list_modules
-			;;
-		s)
-			push_arm
-			bash
-			pop_arm
-			exit 0
 			;;
 		m)
 			MODULES="$OPTARG"

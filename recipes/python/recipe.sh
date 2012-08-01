@@ -27,14 +27,6 @@ function prebuild_python() {
 	try patch -p1 < $RECIPE_python/patches/fix-termios.patch
 	try patch -p1 < $RECIPE_python/patches/custom-loader.patch
 	try patch -p1 < $RECIPE_python/patches/verbose-compilation.patch
-	try patch -p1 < $RECIPE_python/patches/fix-remove-corefoundation.patch
-	try patch -p1 < $RECIPE_python/patches/fix-dynamic-lookup.patch
-
-	system=$(uname -s)
-	if [ "X$system" == "XDarwin" ]; then
-		try patch -p1 < $RECIPE_python/patches/fix-configure-darwin.patch
-		try patch -p1 < $RECIPE_python/patches/fix-distutils-darwin.patch
-	fi
 
 	# everything done, touch the marker !
 	touch .patched
@@ -63,9 +55,8 @@ function build_python() {
 		export LDFLAGS="$LDFLAGS -L$BUILD_openssl/"
 	fi
 
-	try ./configure --host=arm-eabi --prefix="$BUILD_PATH/python-install" --enable-shared --disable-toolbox-glue --disable-framework
-	echo ./configure --host=arm-eabi --prefix="$BUILD_PATH/python-install" --enable-shared --disable-toolbox-glue --disable-framework
-	echo $MAKE HOSTPYTHON=$BUILD_python/hostpython HOSTPGEN=$BUILD_python/hostpgen CROSS_COMPILE_TARGET=yes INSTSONAME=libpython2.7.so
+	try ./configure --host=arm-eabi --prefix="$BUILD_PATH/python-install" --enable-shared
+	try $MAKE HOSTPYTHON=$BUILD_python/hostpython HOSTPGEN=$BUILD_python/hostpgen CROSS_COMPILE_TARGET=yes INSTSONAME=libpython2.7.so
 	cp HOSTPYTHON=$BUILD_python/hostpython python
 
 	# FIXME, the first time, we got a error at:
@@ -77,11 +68,10 @@ function build_python() {
 	debug 'First install (failing..)'
 	$MAKE install HOSTPYTHON=$BUILD_python/hostpython HOSTPGEN=$BUILD_python/hostpgen CROSS_COMPILE_TARGET=yes INSTSONAME=libpython2.7.so
 	debug 'Second install.'
-	touch python.exe python
-	$MAKE install HOSTPYTHON=$BUILD_python/hostpython HOSTPGEN=$BUILD_python/hostpgen CROSS_COMPILE_TARGET=yes INSTSONAME=libpython2.7.so
+	try $MAKE install HOSTPYTHON=$BUILD_python/hostpython HOSTPGEN=$BUILD_python/hostpgen CROSS_COMPILE_TARGET=yes INSTSONAME=libpython2.7.so
 	pop_arm
 
-	try cp $BUILD_hostpython/hostpython $BUILD_PATH/python-install/bin/python.host
+	try cp $BUILD_python/hostpython $BUILD_PATH/python-install/bin/python.host
 	try cp libpython2.7.so $LIBS_PATH/
 }
 
