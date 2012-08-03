@@ -24,16 +24,13 @@ function build_hostpython() {
 
     try ./configure
     try make -j5
+    try mv python hostpython
     try mv Parser/pgen hostpgen
-
-	if [ -f python.exe ]; then
-		try mv python.exe hostpython
-	elif [ -f python ]; then
-		try mv python hostpython
-	else
-		error "Unable to found the python executable?"
-		exit 1
-	fi
+    #try mkdir -p ../prebuilt/Python-$PYVERSION/lib
+    #try cp hostpython ../prebuilt/Python-$PYVERSION/
+    #try cp hostpgen ../prebuilt/Python-$PYVERSION/
+    #try cp build/lib.*/*.so ../prebuilt/Python-$PYVERSION/lib/
+    #try cd ..
 }
 
 function postbuild_hostpython() {
