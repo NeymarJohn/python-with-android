@@ -11,14 +11,11 @@ import android.view.inputmethod.InputMethodManager;
 import android.view.View;
 
 import java.util.List;
-import java.util.ArrayList;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.content.BroadcastReceiver;
 import android.content.Intent;
 import android.content.IntentFilter;
-
-
 
 /**
  * Methods that are expected to be called via JNI, to access the
@@ -41,81 +38,129 @@ public class Hardware {
          }
      }
 
-     /**
-      * Get an Overview of all Hardware Sensors of an Android Device
-      */
-     public static String getHardwareSensors() {
-        SensorManager sm = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-        List<Sensor> allSensors = sm.getSensorList(Sensor.TYPE_ALL);
+     public static SensorEvent lastEvent = null;
 
-        if (allSensors != null){
-            
-            String resultString = "";
-            for (Sensor s : allSensors)
-            {
-                resultString += String.format("Name=" + s.getName());
-                resultString += String.format(",Vendor=" + s.getVendor());
-                resultString += String.format(",Version=" + s.getVersion());
-                resultString += String.format(",MaximumRange=" + s.getMaximumRange());
-                resultString += String.format(",MinDelay=" + s.getMinDelay());
-                resultString += String.format(",Power=" + s.getPower());
-                resultString += String.format(",Type=" + s.getType() + "\n");
-            }
-            return resultString;
-        }
-        return "";
+     static class AccelListener implements SensorEventListener {
+         public void onSensorChanged(SensorEvent ev) {
+             lastEvent = ev;
+         }
+
+         public void onAccuracyChanged(Sensor sensor , int accuracy) {
+         }
+
+     }
+
+     static AccelListener accelListener = new AccelListener();
+
+     /**
+      * Enable or Disable the accelerometer.
+      */
+     public static void accelerometerEnable(boolean enable) {
+         SensorManager sm = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+         Sensor accel = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+
+         if (accel == null) {
+             return;
+         }
+
+         if (enable) {
+             sm.registerListener(accelListener, accel, SensorManager.SENSOR_DELAY_GAME);
+         } else {
+             sm.unregisterListener(accelListener, accel);
+
+         }
      }
 
 
-     /**
-      * Get Access to 3 Axis Hardware Sensors Accelerometer, Orientation and Magnetic Field Sensors
-      */
-     public class generic3AxisSensor implements SensorEventListener {
-         private final SensorManager sSensorManager;
-         private final Sensor sSensor;
-         private final int sSensorType;
-         SensorEvent sSensorEvent;
-
-         public generic3AxisSensor(int sensorType) {
-             sSensorType = sensorType;
-             sSensorManager = (SensorManager)context.getSystemService(Context.SENSOR_SERVICE);
-             sSensor = sSensorManager.getDefaultSensor(sSensorType);
-         }
-
-         public void onAccuracyChanged(Sensor sensor, int accuracy) {
-         }
-
-         public void onSensorChanged(SensorEvent event) {
-             sSensorEvent = event;
-         }
-
-         /**
-          * Enable or disable the Sensor by registering/unregistering
-          */
-         public void changeStatus(boolean enable) {
-             if (enable) {
-                 sSensorManager.registerListener(this, sSensor, SensorManager.SENSOR_DELAY_NORMAL);
-             } else {
-                 sSensorManager.unregisterListener(this, sSensor);
-             }
-         }
-
-         /**
-          * Read the Sensor
-          */ 
-         public float[] readSensor() {
-             if (sSensorEvent != null) {
-                 return sSensorEvent.values;
-             } else {
-                 float rv[] = { 0f, 0f, 0f };
-                 return rv;
-             }
+     public static float[] accelerometerReading() {
+         if (lastEvent != null) {
+             return lastEvent.values;
+         } else {
+             float rv[] = { 0f, 0f, 0f };
+             return rv;
          }
      }
 
-     public generic3AxisSensor accelerometerSensor = new generic3AxisSensor(Sensor.TYPE_ACCELEROMETER);
-     public generic3AxisSensor orientationSensor = new generic3AxisSensor(Sensor.TYPE_ORIENTATION);
-     public generic3AxisSensor magneticFieldSensor = new generic3AxisSensor(Sensor.TYPE_MAGNETIC_FIELD);
+     static SensorEvent lastOrientationEvent = null;
+
+     static class OrientationListener implements SensorEventListener {
+         public void onSensorChanged(SensorEvent ev) {
+             lastOrientationEvent = ev;
+         }
+
+         public void onAccuracyChanged(Sensor sensor , int accuracy) {
+         }
+     }
+
+     static OrientationListener orientationListener = new OrientationListener();
+
+     /**
+      * Enable or Disable the OrientationSensor.
+      */
+     public static void orientationSensorEnable(boolean enable) {
+         SensorManager sm = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+         Sensor orientationSensor = sm.getDefaultSensor(Sensor.TYPE_ORIENTATION);
+
+         if (orientationSensor == null) {
+             return;
+         }
+
+         if (enable) {
+             sm.registerListener(orientationListener, orientationSensor, SensorManager.SENSOR_DELAY_NORMAL);
+         } else {
+             sm.unregisterListener(orientationListener, orientationSensor);
+         }
+     }
+
+     public static float[] orientationSensorReading() {
+         if (lastOrientationEvent != null) {
+             return lastOrientationEvent.values;
+         } else {
+             float rv[] = { 0f, 0f, 0f };
+             return rv;
+         }
+     }
+
+     static SensorEvent lastMagneticFieldEvent = null;
+
+     static class MagneticFieldListener implements SensorEventListener {
+         public void onSensorChanged(SensorEvent ev) {
+             lastMagneticFieldEvent = ev;
+         }
+
+         public void onAccuracyChanged(Sensor sensor , int accuracy) {
+         }
+     }
+
+     static MagneticFieldListener magneticFieldListener = new MagneticFieldListener();
+
+     /**
+      * Enable or Disable the MagneticFieldSensor.
+      */
+     public static void magneticFieldSensorEnable(boolean enable) {
+         SensorManager sm = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+         Sensor magneticFieldSensor = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+
+         if (magneticFieldSensor == null) {
+             return;
+         }
+
+         if (enable) {
+             sm.registerListener(magneticFieldListener, magneticFieldSensor, SensorManager.SENSOR_DELAY_NORMAL);
+         } else {
+             sm.unregisterListener(magneticFieldListener, magneticFieldSensor);
+         }
+     }
+
+
+     public static float[] magneticFieldSensorReading() {
+         if (lastMagneticFieldEvent != null) {
+             return lastMagneticFieldEvent.values;
+         } else {
+             float rv[] = { 0f, 0f, 0f };
+             return rv;
+         }
+     }
 
 
      static DisplayMetrics metrics = new DisplayMetrics();
