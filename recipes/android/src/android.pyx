@@ -246,4 +246,3 @@ class AndroidBrowser(object):
 import webbrowser
 webbrowser.register('android', AndroidBrowser, None, -1)
 
-
