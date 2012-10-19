@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
 import sys
 import subprocess
 from os import environ
@@ -52,8 +51,8 @@ while i < len(sys.argv):
         continue
 
     if opt.startswith("-"):
-        print(sys.argv)
-        print("Unknown option: %s" % opt)
+        print sys.argv
+        print "Unknown option: ", opt
         sys.exit(1)
 
     if not opt.endswith('.o'):
@@ -62,12 +61,12 @@ while i < len(sys.argv):
     objects.append(opt)
 
 
-f = open(output, "w")
+f = file(output, "w")
 f.close()
 
 output = join(environ.get('LIBLINK_PATH'), basename(output))
 
-f = open(output + ".libs", "w")
+f = file(output + ".libs", "w")
 f.write(" ".join(libs))
 f.close()
 
