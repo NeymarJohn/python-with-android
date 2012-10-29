@@ -9,17 +9,8 @@
 # Modules
 MODULES=$MODULES
 
-# Resolve Python path
-PYTHON="$(which python2.7)"
-if [ "X$PYTHON" == "X" ]; then
-	PYTHON="$(which python2)"
-fi
-if [ "X$PYTHON" == "X" ]; then
-	PYTHON="$(which python)"
-fi
-
 # Paths
-ROOT_PATH="$(dirname $($PYTHON -c 'import os,sys;print os.path.realpath(sys.argv[1])' $0))"
+ROOT_PATH="$(dirname $(python -c 'import os,sys;print os.path.realpath(sys.argv[1])' $0))"
 RECIPES_PATH="$ROOT_PATH/recipes"
 BUILD_PATH="$ROOT_PATH/build"
 LIBS_PATH="$ROOT_PATH/build/libs"
@@ -71,7 +62,6 @@ CBLUE="\x1b[34;01m"
 CGRAY="\x1b[30;01m"
 CRESET="\x1b[39;49;00m"
 DO_CLEAN_BUILD=0
-DO_SET_X=0
 
 # Use ccache ?
 which ccache &>/dev/null
@@ -80,6 +70,8 @@ if [ $? -eq 0 ]; then
 	export CXX="ccache g++"
 	export NDK_CCACHE="ccache"
 fi
+
+set -x
 
 function try () {
     "$@" || exit -1
@@ -142,21 +134,22 @@ function push_arm() {
 	export LDFLAGS="-lm"
 
 	# this must be something depending of the API level of Android
-	PYPLATFORM=$($PYTHON -c 'import sys; print sys.platform')
+	PYPLATFORM=$(python -c 'import sys; print sys.platform')
 	if [ "$PYPLATFORM" == "linux2" ]; then
 		PYPLATFORM="linux"
 	elif [ "$PYPLATFORM" == "linux3" ]; then
 		PYPLATFORM="linux"
 	fi
 
-	if [ "X$ANDROIDNDKVER" == "Xr5b" ]; then
+	if [ "X${ANDROIDNDKVER:0:2}" == "Xr7" ] || [ "X$ANDROIDNDKVER" == "Xr8" ]; then
+		export TOOLCHAIN_PREFIX=arm-linux-androideabi
+		export TOOLCHAIN_VERSION=4.4.3
+	elif [ "X$ANDROIDNDKVER" == "Xr5b" ]; then
 		export TOOLCHAIN_PREFIX=arm-eabi
 		export TOOLCHAIN_VERSION=4.4.0
 	else
-		#if [ "X${ANDROIDNDKVER:0:2}" == "Xr7" ] || [ "X$ANDROIDNDKVER" == "Xr8" ]; then
-		# assume this toolchain is the same for all the next ndk... until a new one is out.
-		export TOOLCHAIN_PREFIX=arm-linux-androideabi
-		export TOOLCHAIN_VERSION=4.4.3
+		error "Unable to configure NDK toolchain for NDK $ANDROIDNDKVER"
+		exit -1
 	fi
 
 	export PATH="$ANDROIDNDK/toolchains/$TOOLCHAIN_PREFIX-$TOOLCHAIN_VERSION/prebuilt/$PYPLATFORM-x86/bin/:$ANDROIDNDK:$ANDROIDSDK/tools:$PATH"
@@ -217,7 +210,6 @@ function usage() {
 	echo "  -l                     Show a list of available modules"
 	echo "  -m 'mod1 mod2'         Modules to include"
 	echo "  -f                     Restart from scratch (remove the current build)"
-        echo "  -x                     display expanded values (execute 'set -x')"
 	echo
 	exit 0
 }
@@ -623,7 +615,7 @@ function arm_deduplicate() {
 
 
 # Do the build
-while getopts ":hvlfxm:d:s" opt; do
+while getopts ":hvlfm:d:s" opt; do
 	case $opt in
 		h)
 			usage
@@ -632,8 +624,6 @@ while getopts ":hvlfxm:d:s" opt; do
 			list_modules
 			;;
 		s)
-			run_prepare
-			run_source_modules
 			push_arm
 			bash
 			pop_arm
@@ -648,9 +638,6 @@ while getopts ":hvlfxm:d:s" opt; do
 		f)
 			DO_CLEAN_BUILD=1
 			;;
-                x)
-                        DO_SET_X=1
-                        ;;
 		\?)
 			echo "Invalid option: -$OPTARG" >&2
 			exit 1
@@ -665,10 +652,5 @@ while getopts ":hvlfxm:d:s" opt; do
 			;;
 	esac
 done
-
-if [ $DO_SET_X -eq 1 ]; then
-	info "Set -x for displaying expanded values"
-	set -x
-fi
 
 run

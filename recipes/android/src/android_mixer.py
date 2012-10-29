@@ -139,13 +139,12 @@ class ChannelImpl(object):
         return sound.busy(self.id)
 
     def get_sound(self):
-        is_busy = sound.busy(self.id)
-        if not is_busy:
-            return
-        serial = sound.playing_name(self.id)
-        if not serial:
-            return
-        return sounds.get(serial, None)
+        rv = sound.busy(self.id)
+        if rv is not None:
+            rv = sounds.get(rv, None)
+
+        return rv
+
 
     def queue(self, s):
         self.loop = None
@@ -184,7 +183,6 @@ class Sound(object):
 
         global sound_serial
 
-        self._channel = None
         self.serial = str(sound_serial)
         sound_serial += 1
 
@@ -196,12 +194,7 @@ class Sound(object):
         sounds[self.serial] = self
 
     def play(self, loops=0, maxtime=0, fade_ms=0):
-        # avoid new play if the sound is already playing
-        # -> same behavior as standard pygame.
-        if self._channel is not None:
-            if self._channel.get_sound() is self:
-                return
-        self._channel = channel = find_channel(True)
+        channel = find_channel(True)
         channel.play(self, loops=loops)
         return channel
 
