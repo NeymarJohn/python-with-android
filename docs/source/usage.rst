@@ -4,9 +4,9 @@ Usage
 Step 1: compile the toolchain
 -----------------------------
 
-If you want to compile the toolchain with only kivy and pyjnius module ::
+If you want to compile the toolchain with only kivy module::
 
-    ./distribute.sh -m "pyjnius kivy"
+    ./distribute.sh -m "kivy"
 
 After a long time, you'll get a "dist/default" directory containing all the compiled
 libraries and build.py script to package your application using thoses
@@ -14,8 +14,8 @@ libraries.
 
 You can include other libraries to compile using `-m`::
 
-    ./distribute.sh -m "openssl pyjnius kivy"
-    ./distribute.sh -m "pil ffmpeg pyjnius kivy"
+    ./distribute.sh -m "openssl kivy"
+    ./distribute.sh -m "pil ffmpeg kivy"
 
 Available options to `distribute.sh`::
 

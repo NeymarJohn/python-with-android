@@ -14,11 +14,15 @@ Prerequisites
 You need the minimal environment for building python. Note that other libraries
 might need other tools (cython is used by some recipes, and ccache to speedup the build)::
 
-    sudo apt-get install build-essential patch git-core ccache ant pip
+    sudo apt-get install build-essential patch git-core ccache ant pip python-dev
  
 If you are on a 64 bit distro, you should install these packages too ::
 
     sudo apt-get install ia32-libs and libc6-dev-i386
+
+On debian Squeeze amd64, those packages were found to be necessary ::
+
+    sudo apt-get install lib32stdc++6 lib32z1
 
 Ensure you have the latest cython version::
 
@@ -26,7 +30,7 @@ Ensure you have the latest cython version::
 
 You must have android SDK and NDK. Right now, it's prefered to use:
 
-- SDK API 8 or 14 (15 will not work until a new NDK will be released)
+- SDK API 8 or 14 (15 will not work until a new NDK is released)
 - NDK r5b or r7
 
 You can download them at::
