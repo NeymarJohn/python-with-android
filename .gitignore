@@ -8,7 +8,3 @@ src/default.properties
 dist
 *.pyc
 testsuite
-
-#ECLIPSE + PYDEV
-.project
-.pydevproject
