@@ -52,10 +52,8 @@ if [ "X$WGET" == "X" ]; then
 		echo "Error: you need at least wget or curl installed."
 		exit 1
 	else
-		WGET="$WGET -L -O -o"
+		WGET="$WGET -L -O"
 	fi
-else
-	WGET="$WGET -O"
 fi
 
 case $OSTYPE in
@@ -472,7 +470,7 @@ function run_get_packages() {
 		# download if needed
 		if [ $do_download -eq 1 ]; then
 			info "Downloading $url"
-			try $WGET $filename $url
+			try $WGET $url
 		else
 			debug "Module $module already downloaded"
 		fi
