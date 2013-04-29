@@ -22,6 +22,8 @@ import android.widget.Toast;
 import android.util.Log;
 import android.util.DisplayMetrics;
 import android.os.Debug;
+import android.content.pm.PackageManager;
+import android.content.pm.ApplicationInfo;
 
 import java.io.InputStream;
 import java.io.FileInputStream;
@@ -74,7 +76,8 @@ public class PythonActivity extends Activity implements Runnable {
         //
         // Otherwise, we use the public data, if we have it, or the
         // private data if we do not.
-        if (getIntent().getAction().equals("org.renpy.LAUNCH")) {
+        if (getIntent() != null && getIntent().getAction() != null &&
+            getIntent().getAction().equals("org.renpy.LAUNCH")) {
             mPath = new File(getIntent().getData().getSchemeSpecificPart());
 
             Project p = Project.scanDirectory(mPath);
@@ -104,10 +107,19 @@ public class PythonActivity extends Activity implements Runnable {
             mPath = getFilesDir();
         }
 
-        // go to fullscreen mode
         requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                             WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+        // go to fullscreen mode if requested
+        try {
+            ApplicationInfo ai = this.getPackageManager().getApplicationInfo(
+                    this.getPackageName(), PackageManager.GET_META_DATA);
+            Log.v("python", "metadata fullscreen is" + ai.metaData.get("fullscreen"));
+            if ( (Integer)ai.metaData.get("fullscreen") == 1 ) {
+                getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                        WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            }
+        } catch (PackageManager.NameNotFoundException e) {
+        }
 
         // Start showing an SDLSurfaceView.
         mView = new SDLSurfaceView(
@@ -316,5 +328,26 @@ public class PythonActivity extends Activity implements Runnable {
 		//Log.i(TAG, "on destroy (exit1)");
         System.exit(0);
 	}
+
+     public static void start_service(String serviceTitle, String serviceDescription,
+                                      String pythonServiceArgument) {
+        Intent serviceIntent = new Intent(PythonActivity.mActivity, PythonService.class);
+        String argument = PythonActivity.mActivity.getFilesDir().getAbsolutePath();
+        String filesDirectory = PythonActivity.mActivity.mPath.getAbsolutePath();
+        serviceIntent.putExtra("androidPrivate", argument);
+        serviceIntent.putExtra("androidArgument", filesDirectory);
+        serviceIntent.putExtra("pythonHome", argument);
+        serviceIntent.putExtra("pythonPath", argument + ":" + filesDirectory + "/lib");
+        serviceIntent.putExtra("serviceTitle", serviceTitle);
+        serviceIntent.putExtra("serviceDescription", serviceDescription);
+        serviceIntent.putExtra("pythonServiceArgument", pythonServiceArgument);
+        PythonActivity.mActivity.startService(serviceIntent);
+    }
+
+    public static void stop_service() {
+        Intent serviceIntent = new Intent(PythonActivity.mActivity, PythonService.class);
+        PythonActivity.mActivity.stopService(serviceIntent);
+    }
+
 }
 

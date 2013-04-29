@@ -230,11 +230,19 @@ def make_package(args):
     else:
         intent_filters = ''
 
+    # Figure out if application has service part
+    service = False
+    if args.dir:
+        service_main = join(realpath(args.dir), 'service', 'main.py')
+        if os.path.exists(service_main):
+            service = True
+
     # Render the various templates into control files.
     render(
         'AndroidManifest.tmpl.xml',
         'AndroidManifest.xml',
         args=args,
+        service=service,
         url_scheme=url_scheme,
         intent_filters=intent_filters,
         manifest_extra=manifest_extra,
@@ -327,6 +335,8 @@ tools directory of the Android SDK.
         help='Use a blacklist file to match unwanted file in the final APK')
     ap.add_argument('--sdk', dest='sdk_version', default='8', help='Android SDK version to use. Default to 8')
     ap.add_argument('--minsdk', dest='min_sdk_version', default='8', help='Minimum Android SDK version to use. Default to 8')
+    ap.add_argument('--window', dest='window', action='store_true',
+            help='Indicate if the application will be windowed')
     ap.add_argument('command', nargs='*', help='The command to pass to ant (debug, release, installd, installr)')
 
     args = ap.parse_args()
