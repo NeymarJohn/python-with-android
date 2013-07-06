@@ -325,8 +325,7 @@ def make_package(args):
 
     # Build.
     try:
-        for arg in args.command:
-            subprocess.check_call([ANT, arg])
+        map(lambda arg: subprocess.call([ANT, arg]), args.command)
     except (OSError, IOError):
         print 'An error occured while calling', ANT
         print 'Did you install ant on your system ?'
