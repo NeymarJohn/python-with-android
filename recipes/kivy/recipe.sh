@@ -1,7 +1,7 @@
 #!/bin/bash
 
-VERSION_kivy=${VERSION_kivy:-stable}
-URL_kivy=https://github.com/kivy/kivy/zipball/$VERSION_kivy/kivy-$VERSION_kivy.zip
+VERSION_kivy=
+URL_kivy=https://github.com/kivy/kivy/zipball/stable/kivy-stable.zip
 DEPS_kivy=(pygame pyjnius android)
 MD5_kivy=
 BUILD_kivy=$BUILD_PATH/kivy/$(get_directory $URL_kivy)
