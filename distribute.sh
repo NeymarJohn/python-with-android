@@ -33,7 +33,6 @@ DIST_PATH="$ROOT_PATH/dist/default"
 export LIBLINK_PATH="$BUILD_PATH/objects"
 export LIBLINK="$ROOT_PATH/src/tools/liblink"
 export BIGLINK="$ROOT_PATH/src/tools/biglink"
-export PIP="pip-2.7"
 
 MD5SUM=$(which md5sum)
 if [ "X$MD5SUM" == "X" ]; then
@@ -159,12 +158,9 @@ function push_arm() {
     elif [ "X${ANDROIDNDKVER:0:2}" == "Xr7" ] || [ "X${ANDROIDNDKVER:0:2}" == "Xr8" ]; then
         export TOOLCHAIN_PREFIX=arm-linux-androideabi
         export TOOLCHAIN_VERSION=4.4.3
-    elif  [ "X${ANDROIDNDKVER:0:2}" == "Xr9" ]; then
+    elif  [ "X${ANDROIDNDKVER}" == "Xr9" ]; then
             export TOOLCHAIN_PREFIX=arm-linux-androideabi
             export TOOLCHAIN_VERSION=4.8
-    else
-        echo "Error: Please report issue to enable support for newer ndk."
-        exit 1
     fi
 
 	export PATH="$ANDROIDNDK/toolchains/$TOOLCHAIN_PREFIX-$TOOLCHAIN_VERSION/prebuilt/$PYPLATFORM-x86/bin/:$ANDROIDNDK/toolchains/$TOOLCHAIN_PREFIX-$TOOLCHAIN_VERSION/prebuilt/$PYPLATFORM-x86_64/bin/:$ANDROIDNDK:$ANDROIDSDK/tools:$PATH"
@@ -343,9 +339,6 @@ function run_prepare() {
 	echo "target=android-$ANDROIDAPI" > $SRC_PATH/default.properties
 	echo "sdk.dir=$ANDROIDSDK" > $SRC_PATH/local.properties
 
-	# copy the initial blacklist in build
-	try cp -a $SRC_PATH/blacklist.txt $BUILD_PATH
-
 	# check arm env
 	push_arm
 	debug "PATH is $PATH"
@@ -388,7 +381,6 @@ function run_source_modules() {
 
 	needed=($MODULES)
 	declare -a processed
-	declare -a pymodules
 
 	fn_deps='.deps'
 	fn_optional_deps='.optional-deps'
@@ -400,7 +392,6 @@ function run_source_modules() {
 
 		# pop module from the needed list
 		module=${needed[0]}
-		original_module=${needed[0]}
 		unset needed[0]
 		needed=( ${needed[@]} )
 
@@ -423,9 +414,8 @@ function run_source_modules() {
 		debug "Read $module recipe"
 		recipe=$RECIPES_PATH/$module/recipe.sh
 		if [ ! -f $recipe ]; then
-			error "Recipe $module does not exist, adding the module as pure-python package"
-			pymodules+=($original_module)
-			continue;
+			error "Recipe $module does not exist"
+			exit -1
 		fi
 		source $RECIPES_PATH/$module/recipe.sh
 
@@ -456,10 +446,6 @@ function run_source_modules() {
 	MODULES="$($PYTHON tools/depsort.py --optional $fn_optional_deps < $fn_deps)"
 
 	info "Modules changed to $MODULES"
-
-	PYMODULES="${pymodules[@]}"
-
-	info "Pure-Python modules changed to $PYMODULES"
 }
 
 function run_get_packages() {
@@ -603,40 +589,6 @@ function run_postbuild() {
 	done
 }
 
-function run_pymodules_install() {
-	info "Run pymodules install"
-	if [ "X$PYMODULES" == "X" ]; then
-		debug "No pymodules to install"
-		return
-	fi
-
-	cd "$BUILD_PATH"
-
-	debug "We want to install: $PYMODULES"
-
-	debug "Check if $VIRTUALENV and $PIP are present"
-	for tool in $VIRTUALENV $PIP; do
-		which $tool &>/dev/null
-		if [ $? -ne 0 ]; then
-			error "Tool $tool is missing"
-			exit -1
-		fi
-	done
-	
-	debug "Check if virtualenv is existing"
-	if [ ! -d venv ]; then
-		debug "Installing virtualenv"
-		try $VIRTUALENV --python=python2.7 venv
-	fi
-
-	debug "Create a requirement file for pure-python modules"
-	try echo "$PYMODULES" | try sed 's/\ /\n/g' > requirements.txt
-
-	debug "Install pure-python modules via pip in venv"
-	try bash -c "source venv/bin/activate && env CC=/bin/false CXX=/bin/false $PIP install --target '$BUILD_PATH/python-install/lib/python2.7/site-packages' --download-cache '$PACKAGES_PATH' -r requirements.txt"
-
-}
-
 function run_distribute() {
 	info "Run distribute"
 
@@ -653,7 +605,7 @@ function run_distribute() {
 	try cp -a $SRC_PATH/src .
 	try cp -a $SRC_PATH/templates .
 	try cp -a $SRC_PATH/res .
-	try cp -a $BUILD_PATH/blacklist.txt .
+	try cp -a $SRC_PATH/blacklist.txt .
 
 	debug "Copy python distribution"
 	$BUILD_PATH/python-install/bin/python.host -OO -m compileall $BUILD_PATH/python-install
@@ -717,7 +669,6 @@ function run() {
 	run_build
 	run_biglink
 	run_postbuild
-	run_pymodules_install
 	run_distribute
 	info "All done !"
 }
