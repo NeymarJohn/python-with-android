@@ -6,7 +6,7 @@
 
 VERSION_igraph=${VERSION_igraph:0.6.5}
 
-DEPS_igraph=(python c_igraph)
+DEPS_igraph=(c_igraph python)
 
 URL_igraph=http://pypi.python.org/packages/source/p/python-igraph/python-igraph-0.6.5.tar.gz
 
