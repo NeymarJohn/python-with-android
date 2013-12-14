@@ -1,4 +1,4 @@
-#!/bin/bash
+b#!/bin/bash
 
 # Recipe for the Python interface to igraph, a high-performance graph library in C: http://igraph.org/
 #
@@ -18,12 +18,8 @@ RECIPE_igraph=$RECIPES_PATH/igraph
 
 
 function prebuild_igraph() {
-    if [ ! -f "$BUILD_igraph/.patched" ]; then {
-            try patch $BUILD_igraph/setup.py $RECIPE_igraph/setup.py.patch
-            try patch $BUILD_igraph/setup.cfg $RECIPE_igraph/setup.cfg.patch
-            touch $BUILD_igraph/.patched
-        };
-    fi
+    try patch $BUILD_igraph/setup.py $RECIPE_igraph/setup.py.patch
+    try patch $BUILD_igraph/setup.cfg $RECIPE_igraph/setup.cfg.patch
 }
 
 function shouldbuild_igraph() {
