@@ -1,16 +1,14 @@
 #!/bin/bash
 
-VERSION_twisted=${VERSION_twisted:-14.0}
+VERSION_twisted=${VERSION_twisted:-11.1}
 URL_twisted=http://twistedmatrix.com/Releases/Twisted/$VERSION_twisted/Twisted-$VERSION_twisted.0.tar.bz2
-
 DEPS_twisted=(zope)
-MD5_twisted=9625c094e0a18da77faa4627b98c9815
+MD5_twisted=
 BUILD_twisted=$BUILD_PATH/twisted/$(get_directory $URL_twisted)
 RECIPE_twisted=$RECIPES_PATH/twisted
 
 function prebuild_twisted() {
-	echo "tty.pyo" >> "${BUILD_PATH}/whitelist.txt"
-	echo "termios.so" >> "${BUILD_PATH}/whitelist.txt"
+	true
 }
 
 function shouldbuild_twisted() {
@@ -27,7 +25,7 @@ function build_twisted() {
 	export LDFLAGS="$LDFLAGS -L$LIBS_PATH"
 	export LDSHARED="$LIBLINK"
 
-	export PYTHONPATH=$BUILD_hostpython/Lib/site-packages:$BUILD_hostpython/build/lib.linux-x86_64-2.7
+	export PYTHONPATH=$BUILD_hostpython/Lib/site-packages
 
 	# fake try to be able to cythonize generated files
 	$HOSTPYTHON setup.py build_ext
