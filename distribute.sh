@@ -63,6 +63,8 @@ export BIGLINK="$ROOT_PATH/src/tools/biglink"
 export PIP=$PIP_NAME
 export VIRTUALENV=$VIRTUALENV_NAME
 
+export JELLYBEAN=0
+
 MD5SUM=$(which md5sum)
 if [ "X$MD5SUM" == "X" ]; then
 	MD5SUM=$(which md5)
@@ -217,6 +219,11 @@ function push_arm() {
 	export LD="$TOOLCHAIN_PREFIX-ld"
 	export STRIP="$TOOLCHAIN_PREFIX-strip --strip-unneeded"
 	export MAKE="make -j5"
+	export READELF="$TOOLCHAIN_PREFIX-readelf"
+
+	#if [ "$JELLYBEAN" == "1" ]; then
+	#	export LIBLINK="$CC -shared $LDFLAGS"
+	#fi
 
 	# Use ccache ?
 	which ccache &>/dev/null
@@ -248,6 +255,7 @@ function usage() {
 	echo
 	echo "  -d directory           Name of the distribution directory"
 	echo "  -h                     Show this help"
+	echo "  -j                     Create distribution for JB 4.3+"
 	echo "  -l                     Show a list of available modules"
 	echo "  -m 'mod1 mod2'         Modules to include"
 	echo "  -f                     Restart from scratch (remove the current build)"
@@ -280,7 +288,7 @@ function check_build_deps() {
     DIST=$(lsb_release -is)
 	info "Check build dependencies for $DIST"
     case $DIST in
-		Debian|Ubuntu|LinuxMint)
+		Debian|Ubuntu)
 			check_pkg_deb_installed "build-essential zlib1g-dev cython"
 			;;
 		*)
@@ -344,6 +352,10 @@ function run_prepare() {
 			exit -1
 		fi
 	done
+
+	if [ "$JELLYBEAN" == "1" ]; then
+		info "Distribution for Jelly Bean (4.3) or higher; biglink will be skipped"
+	fi
 
 	info "Distribution will be located at $DIST_PATH"
 	if [ -e "$DIST_PATH" ]; then
@@ -760,7 +772,12 @@ function run_distribute() {
 	debug "Fill private directory"
 	try cp -a python-install/lib private/
 	try mkdir -p private/include/python2.7
-	try mv libs/$ARCH/libpymodules.so private/
+	
+	if [ "$JELLYBEAN" == "1" ]; then
+		try sh -c "cat libs/$ARCH/copylibs | xargs -d'\n' cp -t private/"
+	else
+		try mv libs/$ARCH/libpymodules.so private/
+	fi
 	try cp python-install/include/python2.7/pyconfig.h private/include/python2.7/
 
 	debug "Reduce private directory from unwanted files"
@@ -787,7 +804,11 @@ function run_distribute() {
 
 function run_biglink() {
 	push_arm
-	try $BIGLINK $LIBS_PATH/libpymodules.so $LIBLINK_PATH
+	if [ "$JELLYBEAN" == "0" ]; then
+		try $BIGLINK $LIBS_PATH/libpymodules.so $LIBLINK_PATH
+	else
+		try $BIGLINK $LIBS_PATH/copylibs $LIBLINK_PATH
+	fi
 	pop_arm
 }
 
@@ -829,10 +850,15 @@ function arm_deduplicate() {
 
 
 # Do the build
-while getopts ":hvlfxm:u:d:s" opt; do
+while getopts ":hjvlfxm:u:d:s" opt; do
 	case $opt in
 		h)
 			usage
+			;;
+		j)
+			JELLYBEAN=1
+			LIBLINK=${LIBLINK}-jb
+			BIGLINK=${BIGLINK}-jb
 			;;
 		l)
 			list_modules
