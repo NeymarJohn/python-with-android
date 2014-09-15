@@ -131,10 +131,11 @@ class ChannelImpl(object):
         self.stop()
 
     def set_volume(self, left, right=None):
-        sound.set_volume(self.id, left)
+        # Not implemented.
+        return
 
     def get_volume(self):
-        return sound.get_volume(self.id)
+        return 1.0
 
     def get_busy(self):
         return sound.busy(self.id)
@@ -192,7 +193,6 @@ class Sound(object):
         global sound_serial
 
         self._channel = None
-        self._volume = 1.
         self.serial = str(sound_serial)
         sound_serial += 1
 
@@ -210,7 +210,6 @@ class Sound(object):
             if self._channel.get_sound() is self:
                 return
         self._channel = channel = find_channel(True)
-        channel.set_volume(self._volume)
         channel.play(self, loops=loops)
         return channel
 
@@ -224,13 +223,10 @@ class Sound(object):
         self.stop()
 
     def set_volume(self, left, right=None):
-        self._volume = left
-        if self._channel:
-            if self._channel.get_sound() is self:
-                self._channel.set_volume(self._volume)
+        return
 
     def get_volume(self):
-        return self._volume
+        return 1.0
 
     def get_num_channels(self):
         rv = 0

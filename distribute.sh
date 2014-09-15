@@ -63,6 +63,8 @@ export BIGLINK="$ROOT_PATH/src/tools/biglink"
 export PIP=$PIP_NAME
 export VIRTUALENV=$VIRTUALENV_NAME
 
+export COPYLIBS=0
+
 MD5SUM=$(which md5sum)
 if [ "X$MD5SUM" == "X" ]; then
 	MD5SUM=$(which md5)
@@ -217,6 +219,7 @@ function push_arm() {
 	export LD="$TOOLCHAIN_PREFIX-ld"
 	export STRIP="$TOOLCHAIN_PREFIX-strip --strip-unneeded"
 	export MAKE="make -j5"
+	export READELF="$TOOLCHAIN_PREFIX-readelf"
 
 	# Use ccache ?
 	which ccache &>/dev/null
@@ -253,6 +256,10 @@ function usage() {
 	echo "  -f                     Restart from scratch (remove the current build)"
 	echo "  -x                     display expanded values (execute 'set -x')"
 	echo
+	echo "Advanced:"
+	echo "  -L                     Copy libraries instead of using biglink"
+	echo "                         (may not work before Android 4.3)"
+	echo
 	echo "For developers:"
 	echo "  -u 'mod1 mod2'         Modules to update (if already compiled)"
 	echo
@@ -280,7 +287,7 @@ function check_build_deps() {
     DIST=$(lsb_release -is)
 	info "Check build dependencies for $DIST"
     case $DIST in
-		Debian|Ubuntu|LinuxMint)
+		Debian|Ubuntu)
 			check_pkg_deb_installed "build-essential zlib1g-dev cython"
 			;;
 		*)
@@ -344,6 +351,15 @@ function run_prepare() {
 			exit -1
 		fi
 	done
+
+	if [ "$COPYLIBS" == "1" ]; then
+		info "Library files will be copied to the distribution (no biglink)"
+		error "NOTICE: This option is still beta!"
+		error "\tIf you encounter an error 'Failed to locate needed libraries!' and"
+		error "\tthe libraries listed are not supposed to be provided by your app or"
+		error "\tits dependencies, please submit a bug report at"
+		error "\thttps://github.com/kivy/python-for-android/issues"
+	fi
 
 	info "Distribution will be located at $DIST_PATH"
 	if [ -e "$DIST_PATH" ]; then
@@ -720,13 +736,10 @@ function run_pymodules_install() {
 	fi
 
 	debug "Create a requirement file for pure-python modules"
-	try echo "" > requirements.txt
-	for mod in $PYMODULES; do
-		echo $mod >> requirements.txt
-	done
+	try echo "$PYMODULES" | try sed 's/\ /\n/g' > requirements.txt
 
 	debug "Install pure-python modules via pip in venv"
-	try bash -c "source venv/bin/activate && env CC=/bin/false CXX=/bin/false pip install --target '$SITEPACKAGES_PATH' --download-cache '$PACKAGES_PATH' -r requirements.txt"
+	try bash -c "source venv/bin/activate && env CC=/bin/false CXX=/bin/false $PIP install --target '$SITEPACKAGES_PATH' --download-cache '$PACKAGES_PATH' -r requirements.txt"
 
 }
 
@@ -763,7 +776,14 @@ function run_distribute() {
 	debug "Fill private directory"
 	try cp -a python-install/lib private/
 	try mkdir -p private/include/python2.7
-	try mv libs/$ARCH/libpymodules.so private/
+	
+	if [ "$COPYLIBS" == "1" ]; then
+		if [ -s "libs/$ARCH/copylibs" ]; then
+			try sh -c "cat libs/$ARCH/copylibs | xargs -d'\n' cp -t private/"
+		fi
+	else
+		try mv libs/$ARCH/libpymodules.so private/
+	fi
 	try cp python-install/include/python2.7/pyconfig.h private/include/python2.7/
 
 	debug "Reduce private directory from unwanted files"
@@ -790,7 +810,11 @@ function run_distribute() {
 
 function run_biglink() {
 	push_arm
-	try $BIGLINK $LIBS_PATH/libpymodules.so $LIBLINK_PATH
+	if [ "$COPYLIBS" == "0" ]; then
+		try $BIGLINK $LIBS_PATH/libpymodules.so $LIBLINK_PATH
+	else
+		try $BIGLINK $LIBS_PATH/copylibs $LIBLINK_PATH
+	fi
 	pop_arm
 }
 
@@ -832,10 +856,15 @@ function arm_deduplicate() {
 
 
 # Do the build
-while getopts ":hvlfxm:u:d:s" opt; do
+while getopts ":hCvlfxm:u:d:s" opt; do
 	case $opt in
 		h)
 			usage
+			;;
+		C)
+			COPYLIBS=1
+			LIBLINK=${LIBLINK}-jb
+			BIGLINK=${BIGLINK}-jb
 			;;
 		l)
 			list_modules
