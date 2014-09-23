@@ -287,7 +287,7 @@ function check_build_deps() {
     DIST=$(lsb_release -is)
 	info "Check build dependencies for $DIST"
     case $DIST in
-		Debian|Ubuntu)
+		Debian|Ubuntu|LinuxMint)
 			check_pkg_deb_installed "build-essential zlib1g-dev cython"
 			;;
 		*)
@@ -736,10 +736,13 @@ function run_pymodules_install() {
 	fi
 
 	debug "Create a requirement file for pure-python modules"
-	try echo "$PYMODULES" | try sed 's/\ /\n/g' > requirements.txt
+	try echo "" > requirements.txt
+	for mod in $PYMODULES; do
+		echo $mod >> requirements.txt
+	done
 
 	debug "Install pure-python modules via pip in venv"
-	try bash -c "source venv/bin/activate && env CC=/bin/false CXX=/bin/false $PIP install --target '$SITEPACKAGES_PATH' --download-cache '$PACKAGES_PATH' -r requirements.txt"
+	try bash -c "source venv/bin/activate && env CC=/bin/false CXX=/bin/false pip install --target '$SITEPACKAGES_PATH' --download-cache '$PACKAGES_PATH' -r requirements.txt"
 
 }
 
