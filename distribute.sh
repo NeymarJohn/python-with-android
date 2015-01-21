@@ -18,6 +18,18 @@ if [ "X$PYTHON" == "X" ]; then
 	PYTHON="$(which python)"
 fi
 
+# Resolve pip path
+PIP_NAME="$(which pip-2.7)"
+if [ "X$PIP_NAME" == "X" ]; then
+	PIP_NAME="$(which pip2.7)"
+fi
+if [ "X$PIP_NAME" == "X" ]; then
+	PIP_NAME="$(which pip2)"
+fi
+if [ "X$PIP_NAME" == "X" ]; then
+	PIP_NAME="$(which pip)"
+fi
+
 # Resolve virtualenv path
 VIRTUALENV_NAME="$(which virtualenv-2.7)"
 if [ "X$VIRTUALENV_NAME" == "X" ]; then
@@ -54,6 +66,7 @@ CYTHON+=" -t"
 export LIBLINK_PATH="$BUILD_PATH/objects"
 export LIBLINK="$ROOT_PATH/src/tools/liblink"
 export BIGLINK="$ROOT_PATH/src/tools/biglink"
+export PIP=${PIP_NAME:-pip}
 export VIRTUALENV=${VIRTUALENV_NAME:-virtualenv}
 
 export COPYLIBS=0
@@ -723,14 +736,16 @@ function run_pymodules_install() {
 
 	debug "We want to install: $PYMODULES"
 
-	debug "Check if $VIRTUALENV is present"
-	which $VIRTUALENV &>/dev/null
-	if [ $? -ne 0 ]; then
-		error "Tool $VIRTUALENV is missing"
-		exit -1
-	fi
+	debug "Check if $VIRTUALENV and $PIP are present"
+	for tool in "$VIRTUALENV" "$PIP"; do
+		which $tool &>/dev/null
+		if [ $? -ne 0 ]; then
+			error "Tool $tool is missing"
+			exit -1
+		fi
+	done
 	
-	debug "Check if a virtual environment already exists"
+	debug "Check if virtualenv is existing"
 	if [ ! -d venv ]; then
 		debug "Installing virtualenv"
 		try $VIRTUALENV --python=python2.7 venv
