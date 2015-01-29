@@ -666,23 +666,13 @@ function run_get_packages() {
 	done
 }
 
-function envfn() {
-	envsave=$(mktemp)
-	envrestore=$(mktemp)
-	set > $envsave
-	$1
-	set > $envrestore
-	eval $(grep -v -F -f$envrestore $envsave)
-	rm -f $envsave $envrestore
-}
-
 function run_prebuild() {
 	info "Run prebuild"
 	cd $BUILD_PATH
 	for module in $MODULES; do
 		fn=$(echo prebuild_$module)
 		debug "Call $fn"
-		envfn $fn
+		$fn
 	done
 }
 
@@ -717,7 +707,7 @@ function run_build() {
 		if [ "X$DO_BUILD" == "X1" ] || [ ! -f "$MARKER_FN" ]; then
 			debug "Call $fn"
 			rm -f "$MARKER_FN"
-			envfn $fn
+			$fn
 			touch "$MARKER_FN"
 		else
 			debug "Skipped $fn"
@@ -731,7 +721,7 @@ function run_postbuild() {
 	for module in $MODULES; do
 		fn=$(echo postbuild_$module)
 		debug "Call $fn"
-		envfn $fn
+		$fn
 	done
 }
 
