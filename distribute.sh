@@ -242,7 +242,7 @@ function push_arm() {
 }
 
 function pop_arm() {
-	info "Leaving ARM environment"
+	info "Leaving ARM enviromnent"
 	export PATH=$OLD_PATH
 	export CFLAGS=$OLD_CFLAGS
 	export CXXFLAGS=$OLD_CXXFLAGS
@@ -309,7 +309,7 @@ function check_build_deps() {
 }
 
 function run_prepare() {
-	info "Check environment"
+	info "Check enviromnent"
 	if [ "X$ANDROIDSDK" == "X" ]; then
 		error "No ANDROIDSDK environment set, abort"
 		exit -1
@@ -335,7 +335,7 @@ function run_prepare() {
 	fi
 
 	if [ "X$ANDROIDNDKVER" == "X" ]; then
-		error "No ANDROIDNDKVER environment set, abort"
+		error "No ANDROIDNDKVER enviroment set, abort"
 		error "(Must be something like 'r5b', 'r7'...)"
 		exit -1
 	fi

@@ -181,13 +181,16 @@ version_codes = autoclass('android.os.Build$VERSION_CODES')
 python_act = autoclass('org.renpy.android.PythonActivity')
 rctx = autoclass('android.graphics.Rect')()
 mActivity = python_act.mActivity
-decor_view = mActivity.getWindow().getDecorView()
-height = mActivity.getWindowManager().getDefaultDisplay().getHeight()
-# get keyboard height
-def get_keyboard_height():
-    decor_view.getWindowVisibleDisplayFrame(rctx)
-    return height - rctx.bottom
-
+if mActivity:
+    decor_view = mActivity.getWindow().getDecorView()
+    height = mActivity.getWindowManager().getDefaultDisplay().getHeight()
+    # get keyboard height
+    def get_keyboard_height():
+        decor_view.getWindowVisibleDisplayFrame(rctx)
+        return height - rctx.bottom
+else:
+    def get_keyboard_height():
+        return 0
 
 # Flags for input_type, for requesting a particular type of keyboard
 #android FLAGS
@@ -224,13 +227,13 @@ def show_keyboard(target, input_type):
     elif input_type == 'address':
         _input_type = TYPE_TEXT_VARIATION_POSTAL_ADDRESS
 
-    if target.password:
+    if hasattr(target, 'password') and target.password:
         if _input_type == TYPE_CLASS_TEXT:
             _input_type |= TYPE_TEXT_VARIATION_PASSWORD
         elif _input_type == TYPE_CLASS_NUMBER:
             _input_type |= TYPE_NUMBER_VARIATION_PASSWORD
 
-    if not target.keyboard_suggestions:
+    if hasattr(target, 'keyboard_suggestions') and not target.keyboard_suggestions:
         if _input_type == TYPE_CLASS_TEXT:
             _input_type = TYPE_CLASS_TEXT | \
                 TYPE_TEXT_FLAG_NO_SUGGESTIONS
