@@ -188,10 +188,7 @@ public class RenPySound {
         }
 
         synchronized int get_pos(){
-			if (prepared[0]) {
-				return player[0].getCurrentPosition();
-			}
-			return 0;
+            return player[0].getCurrentPosition();
         }
 
         synchronized int get_length(){
