@@ -653,13 +653,23 @@ function run_get_packages() {
 	done
 }
 
+function envfn() {
+	envsave=$(mktemp)
+	envrestore=$(mktemp)
+	set > $envsave
+	$1
+	set > $envrestore
+	eval $(grep -v -F -f$envrestore $envsave)
+	rm -f $envsave $envrestore
+}
+
 function run_prebuild() {
 	info "Run prebuild"
 	cd $BUILD_PATH
 	for module in $MODULES; do
 		fn=$(echo prebuild_$module)
 		debug "Call $fn"
-		$fn
+		envfn $fn
 	done
 }
 
@@ -694,7 +704,7 @@ function run_build() {
 		if [ "X$DO_BUILD" == "X1" ] || [ ! -f "$MARKER_FN" ]; then
 			debug "Call $fn"
 			rm -f "$MARKER_FN"
-			$fn
+			envfn $fn
 			touch "$MARKER_FN"
 		else
 			debug "Skipped $fn"
@@ -708,7 +718,7 @@ function run_postbuild() {
 	for module in $MODULES; do
 		fn=$(echo postbuild_$module)
 		debug "Call $fn"
-		$fn
+		envfn $fn
 	done
 }
 
@@ -743,7 +753,7 @@ function run_pymodules_install() {
 	done
 
 	debug "Install pure-python modules via pip in venv"
-	try bash -c "source venv/bin/activate && env CC=/bin/false CXX=/bin/false PYTHONPATH= pip install --target '$SITEPACKAGES_PATH' --download-cache '$PACKAGES_PATH' -r requirements.txt"
+	try bash -c "source venv/bin/activate && env CC=/bin/false CXX=/bin/false pip install --target '$SITEPACKAGES_PATH' --download-cache '$PACKAGES_PATH' -r requirements.txt"
 
 }
 
@@ -797,7 +807,6 @@ function run_distribute() {
 	try find . | grep -E '*\.(py|pyc|so\.o|so\.a|so\.libs)$' | xargs rm
 
 	# we are sure that all of theses will be never used on android (well...)
-	try rm -rf ctypes
 	try rm -rf lib2to3
 	try rm -rf idlelib
 	try rm -rf config/libpython*.a
