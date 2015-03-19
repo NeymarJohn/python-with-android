@@ -183,10 +183,9 @@ rctx = autoclass('android.graphics.Rect')()
 mActivity = python_act.mActivity
 if mActivity:
     decor_view = mActivity.getWindow().getDecorView()
-    default_display = mActivity.getWindowManager().getDefaultDisplay()
+    height = mActivity.getWindowManager().getDefaultDisplay().getHeight()
     # get keyboard height
     def get_keyboard_height():
-        height = default_display.getHeight()
         decor_view.getWindowVisibleDisplayFrame(rctx)
         return height - rctx.bottom
 else:
