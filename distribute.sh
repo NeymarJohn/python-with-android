@@ -654,8 +654,8 @@ function run_get_packages() {
 }
 
 function envfn() {
-	envsave=$(mktemp)
-	envrestore=$(mktemp)
+	envsave=$(mktemp -t envsave)
+	envrestore=$(mktemp -t envsave)
 	set > $envsave
 	$1
 	set > $envrestore
@@ -807,6 +807,7 @@ function run_distribute() {
 	try find . | grep -E '*\.(py|pyc|so\.o|so\.a|so\.libs)$' | xargs rm
 
 	# we are sure that all of theses will be never used on android (well...)
+	try rm -rf ctypes
 	try rm -rf lib2to3
 	try rm -rf idlelib
 	try rm -rf config/libpython*.a
