@@ -13,10 +13,11 @@
     :license: BSD.
 """
 import operator
+from jinja2.runtime import Undefined
 from jinja2.environment import Environment
 from jinja2.exceptions import SecurityError
-from jinja2._compat import string_types, function_type, method_type, \
-     traceback_type, code_type, frame_type, generator_type, PY2
+from jinja2.utils import FunctionType, MethodType, TracebackType, CodeType, \
+     FrameType, GeneratorType
 
 
 #: maximum number of items a range may produce
@@ -29,13 +30,6 @@ UNSAFE_FUNCTION_ATTRIBUTES = set(['func_closure', 'func_code', 'func_dict',
 #: unsafe method attributes.  function attributes are unsafe for methods too
 UNSAFE_METHOD_ATTRIBUTES = set(['im_class', 'im_func', 'im_self'])
 
-#: unsafe generator attirbutes.
-UNSAFE_GENERATOR_ATTRIBUTES = set(['gi_frame', 'gi_code'])
-
-# On versions > python 2 the special attributes on functions are gone,
-# but they remain on methods and generators for whatever reason.
-if not PY2:
-    UNSAFE_FUNCTION_ATTRIBUTES = set()
 
 import warnings
 
@@ -97,7 +91,7 @@ def safe_range(*args):
     """A range that can't generate ranges with a length of more than
     MAX_RANGE items.
     """
-    rng = range(*args)
+    rng = xrange(*args)
     if len(rng) > MAX_RANGE:
         raise OverflowError('range too big, maximum size for range is %d' %
                             MAX_RANGE)
@@ -105,9 +99,8 @@ def safe_range(*args):
 
 
 def unsafe(f):
-    """Marks a function or method as unsafe.
-
-    ::
+    """
+    Mark a function or method as unsafe::
 
         @unsafe
         def delete(self):
@@ -121,7 +114,7 @@ def is_internal_attribute(obj, attr):
     """Test if the attribute given is an internal python attribute.  For
     example this function returns `True` for the `func_code` attribute of
     python objects.  This is useful if the environment method
-    :meth:`~SandboxedEnvironment.is_safe_attribute` is overridden.
+    :meth:`~SandboxedEnvironment.is_safe_attribute` is overriden.
 
     >>> from jinja2.sandbox import is_internal_attribute
     >>> is_internal_attribute(lambda: None, "func_code")
@@ -131,20 +124,20 @@ def is_internal_attribute(obj, attr):
     >>> is_internal_attribute(str, "upper")
     False
     """
-    if isinstance(obj, function_type):
+    if isinstance(obj, FunctionType):
         if attr in UNSAFE_FUNCTION_ATTRIBUTES:
             return True
-    elif isinstance(obj, method_type):
+    elif isinstance(obj, MethodType):
         if attr in UNSAFE_FUNCTION_ATTRIBUTES or \
            attr in UNSAFE_METHOD_ATTRIBUTES:
             return True
     elif isinstance(obj, type):
         if attr == 'mro':
             return True
-    elif isinstance(obj, (code_type, traceback_type, frame_type)):
+    elif isinstance(obj, (CodeType, TracebackType, FrameType)):
         return True
-    elif isinstance(obj, generator_type):
-        if attr in UNSAFE_GENERATOR_ATTRIBUTES:
+    elif isinstance(obj, GeneratorType):
+        if attr == 'gi_frame':
             return True
     return attr.startswith('__')
 
@@ -189,81 +182,9 @@ class SandboxedEnvironment(Environment):
     """
     sandboxed = True
 
-    #: default callback table for the binary operators.  A copy of this is
-    #: available on each instance of a sandboxed environment as
-    #: :attr:`binop_table`
-    default_binop_table = {
-        '+':        operator.add,
-        '-':        operator.sub,
-        '*':        operator.mul,
-        '/':        operator.truediv,
-        '//':       operator.floordiv,
-        '**':       operator.pow,
-        '%':        operator.mod
-    }
-
-    #: default callback table for the unary operators.  A copy of this is
-    #: available on each instance of a sandboxed environment as
-    #: :attr:`unop_table`
-    default_unop_table = {
-        '+':        operator.pos,
-        '-':        operator.neg
-    }
-
-    #: a set of binary operators that should be intercepted.  Each operator
-    #: that is added to this set (empty by default) is delegated to the
-    #: :meth:`call_binop` method that will perform the operator.  The default
-    #: operator callback is specified by :attr:`binop_table`.
-    #:
-    #: The following binary operators are interceptable:
-    #: ``//``, ``%``, ``+``, ``*``, ``-``, ``/``, and ``**``
-    #:
-    #: The default operation form the operator table corresponds to the
-    #: builtin function.  Intercepted calls are always slower than the native
-    #: operator call, so make sure only to intercept the ones you are
-    #: interested in.
-    #:
-    #: .. versionadded:: 2.6
-    intercepted_binops = frozenset()
-
-    #: a set of unary operators that should be intercepted.  Each operator
-    #: that is added to this set (empty by default) is delegated to the
-    #: :meth:`call_unop` method that will perform the operator.  The default
-    #: operator callback is specified by :attr:`unop_table`.
-    #:
-    #: The following unary operators are interceptable: ``+``, ``-``
-    #:
-    #: The default operation form the operator table corresponds to the
-    #: builtin function.  Intercepted calls are always slower than the native
-    #: operator call, so make sure only to intercept the ones you are
-    #: interested in.
-    #:
-    #: .. versionadded:: 2.6
-    intercepted_unops = frozenset()
-
-    def intercept_unop(self, operator):
-        """Called during template compilation with the name of a unary
-        operator to check if it should be intercepted at runtime.  If this
-        method returns `True`, :meth:`call_unop` is excuted for this unary
-        operator.  The default implementation of :meth:`call_unop` will use
-        the :attr:`unop_table` dictionary to perform the operator with the
-        same logic as the builtin one.
-
-        The following unary operators are interceptable: ``+`` and ``-``
-
-        Intercepted calls are always slower than the native operator call,
-        so make sure only to intercept the ones you are interested in.
-
-        .. versionadded:: 2.6
-        """
-        return False
-
-
     def __init__(self, *args, **kwargs):
         Environment.__init__(self, *args, **kwargs)
         self.globals['range'] = safe_range
-        self.binop_table = self.default_binop_table.copy()
-        self.unop_table = self.default_unop_table.copy()
 
     def is_safe_attribute(self, obj, attr, value):
         """The sandboxed environment will call this method to check if the
@@ -280,36 +201,18 @@ class SandboxedEnvironment(Environment):
         True.  Override this method to alter the behavior, but this won't
         affect the `unsafe` decorator from this module.
         """
-        return not (getattr(obj, 'unsafe_callable', False) or
+        return not (getattr(obj, 'unsafe_callable', False) or \
                     getattr(obj, 'alters_data', False))
-
-    def call_binop(self, context, operator, left, right):
-        """For intercepted binary operator calls (:meth:`intercepted_binops`)
-        this function is executed instead of the builtin operator.  This can
-        be used to fine tune the behavior of certain operators.
-
-        .. versionadded:: 2.6
-        """
-        return self.binop_table[operator](left, right)
-
-    def call_unop(self, context, operator, arg):
-        """For intercepted unary operator calls (:meth:`intercepted_unops`)
-        this function is executed instead of the builtin operator.  This can
-        be used to fine tune the behavior of certain operators.
-
-        .. versionadded:: 2.6
-        """
-        return self.unop_table[operator](arg)
 
     def getitem(self, obj, argument):
         """Subscribe an object from sandboxed code."""
         try:
             return obj[argument]
         except (TypeError, LookupError):
-            if isinstance(argument, string_types):
+            if isinstance(argument, basestring):
                 try:
                     attr = str(argument)
-                except Exception:
+                except:
                     pass
                 else:
                     try:

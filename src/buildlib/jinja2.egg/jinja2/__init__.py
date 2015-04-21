@@ -27,7 +27,11 @@
     :license: BSD, see LICENSE for more details.
 """
 __docformat__ = 'restructuredtext en'
-__version__ = '2.7.2'
+try:
+    __version__ = __import__('pkg_resources') \
+        .get_distribution('Jinja2').version
+except:
+    __version__ = 'unknown'
 
 # high level interface
 from jinja2.environment import Environment, Template
