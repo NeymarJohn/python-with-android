@@ -93,6 +93,11 @@ case $OSTYPE in
 		;;
 esac
 
+if [ -f /proc/cpuinfo ]; then
+	export MAKE_JOBS=($(grep -c ^processor /proc/cpuinfo) +1 )
+else
+	export MAKE_JOBS=1
+fi
 
 # Internals
 CRED="\x1b[31;01m"
@@ -168,7 +173,7 @@ function push_arm() {
 	export CXXFLAGS="$CFLAGS"
 
 	# that could be done only for darwin platform, but it doesn't hurt.
-	export LDFLAGS="-lm"
+	# export LDFLAGS="-lm"
 
 	# this must be something depending of the API level of Android
 	PYPLATFORM=$($PYTHON -c 'from __future__ import print_function; import sys; print(sys.platform)')
@@ -214,7 +219,7 @@ function push_arm() {
 	export RANLIB="$TOOLCHAIN_PREFIX-ranlib"
 	export LD="$TOOLCHAIN_PREFIX-ld"
 	export STRIP="$TOOLCHAIN_PREFIX-strip --strip-unneeded"
-	export MAKE="make -j5"
+	export MAKE="make"
 	export READELF="$TOOLCHAIN_PREFIX-readelf"
 
 	# This will need to be updated to support Python versions other than 2.7
@@ -338,8 +343,11 @@ function run_prepare() {
 	debug "API level set to $ANDROIDAPI"
 
 	export NDKPLATFORM="$ANDROIDNDK/platforms/android-$ANDROIDAPI/arch-arm"
-	export ARCH="armeabi"
-	#export ARCH="armeabi-v7a" # not tested yet.
+	if [ $ANDROIDAPI -lt 21 ]; then
+		export ARCH="armeabi"
+	else
+		export ARCH="armeabi-v7a" # Required for android 21
+	fi	
 
 	info "Check NDK location"
 	if [ ! -d "$NDKPLATFORM" ]; then
