@@ -171,7 +171,7 @@ cdef extern void android_show_keyboard(int)
 cdef extern void android_hide_keyboard()
 
 
-from jnius import autoclass, PythonJavaClass, java_method
+from jnius import autoclass
 
 # API versions
 api_version = autoclass('android.os.Build$VERSION').SDK_INT
@@ -179,18 +179,15 @@ version_codes = autoclass('android.os.Build$VERSION_CODES')
 
 
 python_act = autoclass('org.renpy.android.PythonActivity')
-Rect = autoclass('android.graphics.Rect')
+rctx = autoclass('android.graphics.Rect')()
 mActivity = python_act.mActivity
 if mActivity:
-    # do not add a listener here, one is already implemented in the Hardware.java
-    # that sends a event to kivy which makes a call to `get_keyboard_height`. 
-    decorview = mActivity.getWindow().getDecorView()
-    default_display = mActivity.getWindowManager().getDefaultDisplay()
-
+    decor_view = mActivity.getWindow().getDecorView()
+    height = mActivity.getWindowManager().getDefaultDisplay().getHeight()
+    # get keyboard height
     def get_keyboard_height():
-        rctx = Rect()
-        decorview.getWindowVisibleDisplayFrame(rctx)
-        return default_display.getHeight() - (rctx.bottom - rctx.top)
+        decor_view.getWindowVisibleDisplayFrame(rctx)
+        return height - rctx.bottom
 else:
     def get_keyboard_height():
         return 0
