@@ -4,7 +4,7 @@
 
 VERSION_ffmpeg2=${VERSION_ffmpeg2:-2.7.1}
 URL_ffmpeg2=http://ffmpeg.org/releases/ffmpeg-$VERSION_ffmpeg2.tar.bz2
-DEPS_ffmpeg2=()
+DEPS_ffmpeg2=(sdl)
 MD5_ffmpeg2=
 BUILD_ffmpeg2=$BUILD_PATH/ffmpeg2/$(get_directory $URL_ffmpeg2)
 RECIPE_ffmpeg2=$RECIPES_PATH/ffmpeg2
