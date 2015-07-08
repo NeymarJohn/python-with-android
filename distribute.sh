@@ -168,7 +168,7 @@ function push_arm() {
 	export CXXFLAGS="$CFLAGS"
 
 	# that could be done only for darwin platform, but it doesn't hurt.
-	# export LDFLAGS="-lm"
+	export LDFLAGS="-lm"
 
 	# this must be something depending of the API level of Android
 	PYPLATFORM=$($PYTHON -c 'from __future__ import print_function; import sys; print(sys.platform)')
@@ -338,11 +338,8 @@ function run_prepare() {
 	debug "API level set to $ANDROIDAPI"
 
 	export NDKPLATFORM="$ANDROIDNDK/platforms/android-$ANDROIDAPI/arch-arm"
-	if [ $ANDROIDAPI -lt 21 ]; then
-		export ARCH="armeabi"
-	else
-		export ARCH="armeabi-v7a" # Required for android 21
-	fi	
+	export ARCH="armeabi"
+	#export ARCH="armeabi-v7a" # not tested yet.
 
 	info "Check NDK location"
 	if [ ! -d "$NDKPLATFORM" ]; then
