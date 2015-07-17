@@ -220,15 +220,7 @@ def make_package(args):
     if not args.numeric_version:
         for i in args.version.split('.'):
             version_code *= 100
-            try:
-                version_code += int(i)
-            except:
-                try:
-                    for j in i.split('-'):
-                        version_code += int(j)
-                        break
-                except:
-                    pass
+            version_code += int(i)
 
         args.numeric_version = str(version_code)
 
