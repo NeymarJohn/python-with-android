@@ -48,8 +48,8 @@ function build_c_igraph() {
     fi
 
 
-    try $MAKE -j$MAKE_JOBS
-    try $MAKE -j$MAKE_JOBS install
+    try $MAKE
+    try $MAKE install
 
     pop_arm
     touch .built

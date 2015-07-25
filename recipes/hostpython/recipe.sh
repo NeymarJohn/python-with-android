@@ -25,7 +25,7 @@ function build_hostpython() {
 	cd $BUILD_hostpython
 
     try ./configure
-    try make -j$MAKE_JOBS 
+    try make -j5
     try mv Parser/pgen hostpgen
 
 	if [ -f python.exe ]; then
