@@ -48,7 +48,7 @@ to install and begin creating APK.
 
 Quick instructions to start would be:
 
-    pip install git+https://github.com/kivy/python-for-android.git
+    pip install git+https://github.com/kivy/python-for-android.git@revamp
 
 The executable is called `python-for-android` or `p4a` (both are
 equivalent). To test that the installation worked, try
