@@ -18,6 +18,14 @@ class NewIntentListener(PythonJavaClass):
     def onNewIntent(self, intent):
         self.callback(intent)
 
+    @java_method('(Ljava/lang/Object;)Z')
+    def equals(self, obj):
+        return obj.hashCode() == self.hashCode()
+
+    @java_method('()I')
+    def hashCode(self):
+        return id(self)
+
 
 class ActivityResultListener(PythonJavaClass):
     __javainterfaces__ = ['org/renpy/android/PythonActivity$ActivityResultListener']
@@ -30,6 +38,14 @@ class ActivityResultListener(PythonJavaClass):
     @java_method('(IILandroid/content/Intent;)V')
     def onActivityResult(self, requestCode, resultCode, intent):
         self.callback(requestCode, resultCode, intent)
+
+    @java_method('(Ljava/lang/Object;)Z')
+    def equals(self, obj):
+        return obj.hashCode() == self.hashCode()
+
+    @java_method('()I')
+    def hashCode(self):
+        return id(self)
 
 
 def bind(**kwargs):
