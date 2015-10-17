@@ -41,8 +41,9 @@ branch.
 
 # Documentation
 
-Follow the
-[quickstart instructions](https://python-for-android.readthedocs.org/en/latest/quickstart/)
+This toolchain is documented (temporarily)
+[here](http://inclem.net/files/p4a_revamp_doc/). Follow the
+[quickstart instructions](http://inclem.net/files/p4a_revamp_doc/quickstart.html#quickstart)
 to install and begin creating APK.
 
 Quick instructions to start would be:
@@ -89,7 +90,8 @@ the reference commit that the revamp is based on:
 
 # Current status
 
-The tool works, testing is welcomed.
+The tool works, testing is welcomed. Doc is available
+[here](http://inclem.net/files/p4a_revamp_doc/).
 
 # Development notes
 
