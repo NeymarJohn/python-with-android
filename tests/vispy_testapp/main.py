@@ -11,9 +11,6 @@ import ctypes.util
 print('imported util')
 print(ctypes.util.find_library)
 
-import vispy
-# vispy.set_log_level('debug')
-
 import sys
 from vispy import scene
 from vispy.geometry.torusknot import TorusKnot
@@ -22,7 +19,6 @@ from colorsys import hsv_to_rgb
 import numpy as np
 
 canvas = scene.SceneCanvas(keys='interactive', bgcolor='white')
-canvas.unfreeze()
 canvas.view = canvas.central_widget.add_view()
 
 points1 = TorusKnot(5, 3).first_component[:-1]
