@@ -204,7 +204,7 @@ def shprint(command, *args, **kwargs):
                 logger.debug(''.join(['\t', line.rstrip()]))
         if need_closing_newline:
             sys.stdout.write('{}\r{:>{width}}\r'.format(
-                Style.RESET_ALL, ' ', width=(columns - 1)))
+                Colo_Style.RESET_ALL, ' ', width=(columns - 1)))
     except sh.ErrorReturnCode as err:
         if need_closing_newline:
             sys.stdout.write('{}\r{:>{width}}\r'.format(
@@ -457,13 +457,6 @@ class Arch(object):
             for d in self.ctx.include_dirs]
 
     def get_env(self):
-        raise ValueError('Tried to get_env of Arch, this needs '
-                         'a specific Arch subclass')
-
-class ArchARM(Arch):
-    arch = "armeabi"
-
-    def get_env(self):
         include_dirs = [
             "-I{}/{}".format(
                 self.ctx.include_dir,
@@ -533,19 +526,9 @@ class ArchARM(Arch):
 
         return env
 
-class ArchARMv7_a(ArchARM):
-    arch = 'armeabi-v7'
 
-    def get_env(self):
-        env = super(ArchARMv7_a, self).get_env()
-        env['CFLAGS'] = env['CFLAGS'] + ' -march=armv7-a -mfloat-abi=softfp -mfpu=vfp -mthumb'
-        env['CXXFLAGS'] = env['CFLAGS']
-
-class Archx86(Arch):
-    arch = 'x86'
-
-    def get_env(self):
-        raise ValueError('Archx86 not supported yet!')
+class ArchAndroid(Arch):
+    arch = "armeabi"
 
 # class ArchSimulator(Arch):
 #     sdk = "iphonesimulator"
@@ -1089,7 +1072,7 @@ class Context(object):
 
         # AND: Currently only the Android architecture is supported
         self.archs = (
-            ArchARM(self),
+            ArchAndroid(self),
             )
 
         ensure_dir(join(self.build_dir, 'bootstrap_builds'))
@@ -2461,10 +2444,10 @@ def biglink(ctx, arch):
         files.append(obj_dir)
         shprint(sh.cp, '-r', *files)
 
-    # AND: Shouldn't hardcode Arch! In reality need separate
+    # AND: Shouldn't hardcode ArchAndroid! In reality need separate
     # build dirs for each arch
-    arch = ArchARM(ctx)
-    env = ArchARM(ctx).get_env()
+    arch = ArchAndroid(ctx)
+    env = ArchAndroid(ctx).get_env()
     env['LDFLAGS'] = env['LDFLAGS'] + ' -L{}'.format(
         join(ctx.bootstrap.build_dir, 'obj', 'local', 'armeabi'))
 
