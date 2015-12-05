@@ -72,8 +72,6 @@ if stderr.isatty():
 else:
     Err_Style = Null_Style
     Err_Fore = Null_Fore
-Fore = Colo_Fore
-Style = Colo_Style
 
 user_dir = dirname(realpath(os.path.curdir))
 toolchain_dir = dirname(__file__)
@@ -206,11 +204,13 @@ def shprint(command, *args, **kwargs):
                 logger.debug(''.join(['\t', line.rstrip()]))
         if need_closing_newline:
             sys.stdout.write('{}\r{:>{width}}\r'.format(
-                Style.RESET_ALL, ' ', width=(columns - 1)))
+                Err_Style.RESET_ALL, ' ', width=(columns - 1)))
+            sys.stdout.flush()
     except sh.ErrorReturnCode as err:
         if need_closing_newline:
             sys.stdout.write('{}\r{:>{width}}\r'.format(
-                Style.RESET_ALL, ' ', width=(columns - 1)))
+                Err_Style.RESET_ALL, ' ', width=(columns - 1)))
+            sys.stdout.flush()
         if tail_n or filter_in or filter_out:
             def printtail(out, name, forecolor, tail_n=0,
                           re_filter_in=None, re_filter_out=None):
@@ -288,7 +288,6 @@ def require_prebuilt_dist(func):
     @wraps(func)
     def wrapper_func(self, args):
         ctx = self.ctx
-        ctx.set_archs(self.archs)
         ctx.prepare_build_environment(user_sdk_dir=self.sdk_dir,
                                       user_ndk_dir=self.ndk_dir,
                                       user_android_api=self.android_api,
@@ -486,9 +485,6 @@ class Arch(object):
         env['TOOLCHAIN_PREFIX'] = toolchain_prefix
         env['TOOLCHAIN_VERSION'] = toolchain_version
 
-        if toolchain_prefix == 'x86':
-            toolchain_prefix = 'i686-linux-android'
-        print('path is', environ['PATH'])
         cc = find_executable('{toolchain_prefix}-gcc'.format(
             toolchain_prefix=toolchain_prefix), path=environ['PATH'])
         if cc is None:
@@ -518,7 +514,7 @@ class Arch(object):
         # AND: This also hardcodes armeabi, which isn't even correct,
         #      don't forget to fix!
         env['BUILDLIB_PATH'] = join(
-            hostpython_recipe.get_build_dir(self.arch),
+            hostpython_recipe.get_build_dir('armeabi'),
             'build', 'lib.linux-{}-2.7'.format(uname()[-1]))
 
         env['PATH'] = environ['PATH']
@@ -532,35 +528,9 @@ class Arch(object):
 
         return env
 
-class ArchARM(Arch):
+
+class ArchAndroid(Arch):
     arch = "armeabi"
-
-class ArchARMv7_a(ArchARM):
-    arch = 'armeabi-v7a'
-
-    def get_env(self):
-        env = super(ArchARMv7_a, self).get_env()
-        env['CFLAGS'] = env['CFLAGS'] + ' -march=armv7-a -mfloat-abi=softfp -mfpu=vfp -mthumb'
-        env['CXXFLAGS'] = env['CFLAGS']
-        return env
-
-class Archx86(Arch):
-    arch = 'x86'
-
-    def get_env(self):
-        env = super(Archx86, self).get_env()
-        env['CFLAGS'] = env['CFLAGS'] + ' -march=i686 -mtune=intel -mssse3 -mfpmath=sse -m32'
-        env['CXXFLAGS'] = env['CFLAGS']
-        return env
-
-class Archx86_64(Arch):
-    arch = 'x86_64'
-
-    def get_env(self):
-        env = super(Archx86_64, self).get_env()
-        env['CFLAGS'] = env['CFLAGS'] + ' -march=x86-64 -msse4.2 -mpopcnt -m64 -mtune=intel'
-        env['CXXFLAGS'] = env['CFLAGS']
-        return env
 
 # class ArchSimulator(Arch):
 #     sdk = "iphonesimulator"
@@ -976,20 +946,11 @@ class Context(object):
             warning('Android NDK version could not be found, exiting.')
         self.ndk_ver = ndk_ver
 
-        # AND: need to change if supporting multiple archs at once
-        arch = self.archs[0]
-        if arch.arch[:3] == 'arm':
-            compiler_dir = 'arch-arm'
-        elif arch.arch == 'x86':
-            compiler_dir = 'arch-x86'
-        else:
-            warning('Don\'t know what NDK compiler dir to look in. Exiting.')
-            exit(1)
         self.ndk_platform = join(
             self.ndk_dir,
             'platforms',
             'android-{}'.format(self.android_api),
-            compiler_dir)
+            'arch-arm')
         if not exists(self.ndk_platform):
             warning('ndk_platform doesn\'t exist')
             ok = False
@@ -1025,18 +986,15 @@ class Context(object):
         py_platform = sys.platform
         if py_platform in ['linux2', 'linux3']:
             py_platform = 'linux'
-        if arch.arch[:3] == 'arm':
-            if self.ndk_ver == 'r5b':
-                toolchain_prefix = 'arm-eabi'
-            elif self.ndk_ver[:2] in ('r7', 'r8', 'r9'):
-                toolchain_prefix = 'arm-linux-androideabi'
-            elif self.ndk_ver[:3] == 'r10':
-                toolchain_prefix = 'arm-linux-androideabi'
-            else:
-                warning('Error: NDK not supported by these tools?')
-                exit(1)
+        if self.ndk_ver == 'r5b':
+            toolchain_prefix = 'arm-eabi'
+        elif self.ndk_ver[:2] in ('r7', 'r8', 'r9'):
+            toolchain_prefix = 'arm-linux-androideabi'
+        elif self.ndk_ver[:3] == 'r10':
+            toolchain_prefix = 'arm-linux-androideabi'
         else:
-            toolchain_prefix = 'x86'
+            warning('Error: NDK not supported by these tools?')
+            exit(1)
 
         toolchain_versions = []
         toolchain_path = join(self.ndk_dir, 'toolchains')
@@ -1048,11 +1006,9 @@ class Context(object):
                        os.path.join(toolchain_path, toolchain_content)):
                     toolchain_version = toolchain_content[
                         len(toolchain_prefix)+1:]
-                    # AND: This is terrible!
-                    if toolchain_version[0] in map(str, range(10)) and 'clang' not in toolchain_version and toolchain_version[:2] != '64':
-                        debug('Found toolchain version: {}'.format(
-                            toolchain_version))
-                        toolchain_versions.append(toolchain_version)
+                    debug('Found toolchain version: {}'.format(
+                        toolchain_version))
+                    toolchain_versions.append(toolchain_version)
         else:
             warning('Could not find toolchain subdirectory!')
             ok = False
@@ -1116,11 +1072,9 @@ class Context(object):
         # root of the toolchain
         self.setup_dirs()
 
-        # this list should contain all Archs, it is pruned later
+        # AND: Currently only the Android architecture is supported
         self.archs = (
-            ArchARM(self),
-            ArchARMv7_a(self),
-            Archx86(self)
+            ArchAndroid(self),
             )
 
         ensure_dir(join(self.build_dir, 'bootstrap_builds'))
@@ -1134,20 +1088,6 @@ class Context(object):
 
         # set the state
         self.state = JsonStore(join(self.dist_dir, "state.db"))
-
-    def set_archs(self, arch_names):
-        all_archs = self.archs
-        new_archs = set()
-        for name in arch_names:
-            matching = [arch for arch in all_archs if arch.arch == name]
-            for match in matching:
-                new_archs.add(match)
-        self.archs = list(new_archs)
-        if not self.archs:
-            warning('Asked to compile for no Archs, so failing.')
-            exit(1)
-        info('Will compile for the following archs: {}'.format(
-            ', '.join([arch.arch for arch in self.archs])))
 
     def prepare_bootstrap(self, bs):
         bs.ctx = self
@@ -1742,7 +1682,7 @@ class Recipe(object):
     #         print("Unrecognized extension for {}".format(filename))
     #         raise Exception()
 
-    def apply_patch(self, filename, arch):
+    def apply_patch(self, filename, arch='armeabi'):
         """
         Apply a patch from the current recipe directory into the current
         build directory.
@@ -1856,6 +1796,12 @@ class Recipe(object):
 
     # Public Recipe API to be subclassed if needed
 
+    def ensure_build_container_dir(self):
+        info_main('Preparing build dir for {}'.format(self.name))
+
+        build_dir = self.get_build_container_dir('armeabi')
+        ensure_dir(build_dir)
+
     def download_if_necessary(self):
         info_main('Downloading {}'.format(self.name))
         user_dir = environ.get('P4A_{}_DIR'.format(self.name.lower()))
@@ -1930,7 +1876,7 @@ class Recipe(object):
             ensure_dir(build_dir)
             # shprint(sh.ln, '-s', user_dir,
             #         join(build_dir, get_directory(self.versioned_url)))
-            shprint(sh.git, 'clone', user_dir, self.get_build_dir(arch))
+            shprint(sh.git, 'clone', user_dir, self.get_build_dir('armeabi'))
             return
 
         if self.url is None:
@@ -2215,8 +2161,8 @@ class PythonRecipe(Recipe):
     def hostpython_location(self):
         if not self.call_hostpython_via_targetpython:
             return join(
-                Recipe.get_recipe('hostpython2', self.ctx).get_build_dir(),
-                'hostpython')
+                Recipe.get_recipe('hostpython2', self.ctx).get_build_dir(
+                    'armeabi'), 'hostpython')
         return self.ctx.hostpython
 
     def should_build(self):
@@ -2237,16 +2183,16 @@ class PythonRecipe(Recipe):
         '''Install the Python module by calling setup.py install with
         the target Python dir.'''
         super(PythonRecipe, self).build_arch(arch)
-        self.install_python_package(arch)
+        self.install_python_package()
     # @cache_execution
     # def install(self):
     #     self.install_python_package()
     #     self.reduce_python_package()
 
-    def install_python_package(self, arch, name=None, env=None, is_dir=True):
+    def install_python_package(self, name=None, env=None, is_dir=True):
         '''Automate the installation of a Python package (or a cython
         package where the cython components are pre-built).'''
-        # arch = self.filtered_archs[0]  # old kivy-ios way
+        arch = self.filtered_archs[0]
         if name is None:
             name = self.name
         if env is None:
@@ -2288,7 +2234,7 @@ class CompiledComponentsPythonRecipe(PythonRecipe):
         #                              # after everything else but isn't
         #                              # used by a normal recipe.
         self.build_compiled_components(arch)
-        self.install_python_package(arch)
+        self.install_python_package()
 
     def build_compiled_components(self, arch):
         info('Building compiled components in {}'.format(self.name))
@@ -2317,7 +2263,7 @@ class CythonRecipe(PythonRecipe):
         #                              # after everything else but isn't
         #                              # used by a normal recipe.
         self.build_cython_components(arch)
-        self.install_python_package(arch)
+        self.install_python_package()
 
     def build_cython_components(self, arch):
         # AND: Should we use tito's cythonize methods? How do they work?
@@ -2334,7 +2280,7 @@ class CythonRecipe(PythonRecipe):
                 info('{} first build failed (as expected)'.format(self.name))
 
             info('Running cython where appropriate')
-            shprint(sh.find, self.get_build_dir(arch.arch), '-iname', '*.pyx',
+            shprint(sh.find, self.get_build_dir('armeabi'), '-iname', '*.pyx',
                     '-exec', self.ctx.cython, '{}', ';', _env=env)
             info('ran cython')
 
@@ -2500,11 +2446,12 @@ def biglink(ctx, arch):
         files.append(obj_dir)
         shprint(sh.cp, '-r', *files)
 
-    # AND: Shouldn't hardcode Arch! In reality need separate
+    # AND: Shouldn't hardcode ArchAndroid! In reality need separate
     # build dirs for each arch
-    env = arch.get_env()
+    arch = ArchAndroid(ctx)
+    env = ArchAndroid(ctx).get_env()
     env['LDFLAGS'] = env['LDFLAGS'] + ' -L{}'.format(
-        join(ctx.bootstrap.build_dir, 'obj', 'local', arch.arch))
+        join(ctx.bootstrap.build_dir, 'obj', 'local', 'armeabi'))
 
     if not len(glob.glob(join(obj_dir, '*'))):
         info('There seem to be no libraries to biglink, skipping.')
@@ -2516,7 +2463,7 @@ def biglink(ctx, arch):
         join(ctx.get_libs_dir(arch.arch), 'libpymodules.so'),
         obj_dir.split(' '),
         extra_link_dirs=[join(ctx.bootstrap.build_dir,
-                              'obj', 'local', arch.arch)],
+                              'obj', 'local', 'armeabi')],
         env=env)
 
 
@@ -2809,14 +2756,6 @@ build_dist
             help=('The version of the Android NDK. This is optional, '
                   'we try to work it out automatically from the ndk_dir.'))
 
-
-        # AND: This option doesn't really fit in the other categories, the
-        # arg structure needs a rethink
-        parser.add_argument(
-            '--arch',
-            help='The archs to build for, separated by commas.',
-            default='armeabi')
-
         # Options for specifying the Distribution
         parser.add_argument(
             '--dist_name',
@@ -2854,7 +2793,6 @@ build_dist
             description=('Whether the dist recipes must perfectly match '
                          'those requested'))
 
-
         self._read_configuration()
 
         args, unknown = parser.parse_known_args(sys.argv[1:])
@@ -2867,8 +2805,8 @@ build_dist
         self.android_api = args.android_api
         self.ndk_version = args.ndk_version
 
-        self.archs = split_argument_list(args.arch)
-
+        # import ipdb
+        # ipdb.set_trace()
         # AND: Fail nicely if the args aren't handled yet
         if args.extra_dist_dirs:
             warning('Received --extra_dist_dirs but this arg currently is not '
