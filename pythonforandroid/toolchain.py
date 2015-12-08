@@ -85,11 +85,7 @@ DEFAULT_ANDROID_API = 15
 
 class LevelDifferentiatingFormatter(logging.Formatter):
     def format(self, record):
-        if record.levelno > 30:
-            record.msg = '{}{}[ERROR]{}{}:   '.format(
-                Err_Style.BRIGHT, Err_Fore.RED, Err_Fore.RESET,
-                Err_Style.RESET_ALL) + record.msg
-        elif record.levelno > 20:
+        if record.levelno > 20:
             record.msg = '{}{}[WARNING]{}{}: '.format(
                 Err_Style.BRIGHT, Err_Fore.RED, Err_Fore.RESET,
                 Err_Style.RESET_ALL) + record.msg
@@ -115,7 +111,6 @@ if not hasattr(logger, 'touched'):  # Necessary as importlib reloads
 info = logger.info
 debug = logger.debug
 warning = logger.warning
-error = logger.error
 
 
 IS_PY3 = sys.version_info[0] >= 3
@@ -1013,7 +1008,7 @@ class Context(object):
             'android-{}'.format(self.android_api),
             platform_dir)
         if not exists(self.ndk_platform):
-            warning('ndk_platform doesn\'t exist: {}'.format(self.ndk_platform))
+            warning('ndk_platform doesn\'t exist')
             ok = False
 
         py_platform = sys.platform
@@ -1070,7 +1065,6 @@ class Context(object):
                     executable))
 
         if not ok:
-            error('{}python-for-android cannot continue; aborting{}'.format(Err_Fore.RED, Err_Fore.RESET))
             sys.exit(1)
 
     def __init__(self):
