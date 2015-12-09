@@ -49,10 +49,6 @@ from colorama import Style as Colo_Style, Fore as Colo_Fore
 from collections import defaultdict
 
 
-# monkey patch to show full output
-sh.ErrorReturnCode.truncate_cap = 999999
-
-
 class colorama_shim(object):
 
     def __init__(self):
@@ -1929,7 +1925,7 @@ class Recipe(object):
                         sh.tar('xzf', extraction_filename)
                         root_directory = shprint(
                             sh.tar, 'tzf', extraction_filename).stdout.decode(
-                                'utf-8').split('\n')[0].strip('/')
+                                'utf-8').split('\n')[0].split('/')[0]
                         if root_directory != directory_name:
                             shprint(sh.mv, root_directory, directory_name)
                     elif (extraction_filename.endswith('.tar.bz2') or
