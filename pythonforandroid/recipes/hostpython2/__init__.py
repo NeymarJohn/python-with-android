@@ -12,27 +12,24 @@ class Hostpython2Recipe(Recipe):
 
     conflicts = ['hostpython3']
 
-    def get_build_container_dir(self, arch=None):
-        choices = self.check_recipe_choices()
-        dir_name = '-'.join([self.name] + choices)
-        return join(self.ctx.build_dir, 'other_builds', dir_name, 'desktop')
-
-    def get_build_dir(self, arch=None):
-        return join(self.get_build_container_dir(), self.name)
-
-    def prebuild_arch(self, arch):
+    def prebuild_armeabi(self):
         # Override hostpython Setup?
         shprint(sh.cp, join(self.get_recipe_dir(), 'Setup'),
-                join(self.get_build_dir(), 'Modules', 'Setup'))
+                join(self.get_build_dir('armeabi'), 'Modules', 'Setup'))
 
-    def build_arch(self, arch):
-        with current_directory(self.get_build_dir()):
+    def build_armeabi(self):
+        # AND: Should use an i386 recipe system
+        warning('Running hostpython build. Arch is armeabi! '
+                'This is naughty, need to fix the Arch system!')
+
+        # AND: Fix armeabi again
+        with current_directory(self.get_build_dir('armeabi')):
 
             if exists('hostpython'):
                 info('hostpython already exists, skipping build')
-                self.ctx.hostpython = join(self.get_build_dir(),
+                self.ctx.hostpython = join(self.get_build_dir('armeabi'),
                                            'hostpython')
-                self.ctx.hostpgen = join(self.get_build_dir(),
+                self.ctx.hostpgen = join(self.get_build_dir('armeabi'),
                                            'hostpgen')
                 return
             
@@ -52,8 +49,8 @@ class Hostpython2Recipe(Recipe):
                         'hostpython build! Exiting.')
                 exit(1)
 
-        self.ctx.hostpython = join(self.get_build_dir(), 'hostpython')
-        self.ctx.hostpgen = join(self.get_build_dir(), 'hostpgen')
+        self.ctx.hostpython = join(self.get_build_dir('armeabi'), 'hostpython')
+        self.ctx.hostpgen = join(self.get_build_dir('armeabi'), 'hostpgen')
 
 
 recipe = Hostpython2Recipe()
