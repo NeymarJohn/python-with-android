@@ -49,6 +49,10 @@ from colorama import Style as Colo_Style, Fore as Colo_Fore
 from collections import defaultdict
 
 
+# monkey patch to show full output
+sh.ErrorReturnCode.truncate_cap = 999999
+
+
 class colorama_shim(object):
 
     def __init__(self):
@@ -1809,13 +1813,9 @@ class Recipe(object):
         This returns a different directory depending on what
         alternative or optional dependencies are being built.
         '''
-        dir_name = self.get_dir_name()
-        return join(self.ctx.build_dir, 'other_builds', dir_name, arch)
-
-    def get_dir_name(self):
         choices = self.check_recipe_choices()
         dir_name = '-'.join([self.name] + choices)
-        return dir_name
+        return join(self.ctx.build_dir, 'other_builds', dir_name, arch)
 
     def get_build_dir(self, arch):
         '''Given the arch name, returns the directory where the
