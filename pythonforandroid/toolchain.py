@@ -610,22 +610,15 @@ class Graph(object):
     def remove_redundant_graphs(self):
         '''Removes possible graphs if they are equivalent to others.'''
         graphs = self.graphs
+        initial_num_graphs = len(graphs)
         # Walk the list backwards so that popping elements doesn't
-        # mess up indexing.
-
-        # n.b. no need to test graph 0 as it will have been tested against
-        # all others by the time we get to it
-        for i in range(len(graphs) - 1, 0, -1):   
-            graph = graphs[i]
-
-            #test graph i against all graphs 0 to i-1
-            for j in range(0, i):
-                comparison_graph = graphs[j]
-                
+        # mess up indexing
+        for i in range(len(graphs) - 1):
+            graph = graphs[initial_num_graphs - 1 - i]
+            for j in range(1, len(graphs)):
+                comparison_graph = graphs[initial_num_graphs - 1 - j]
                 if set(comparison_graph.keys()) == set(graph.keys()):
-                    #graph[i] == graph[j]
-                    #so remove graph[i] and continue on to testing graph[i-1]
-                    graphs.pop(i)
+                    graphs.pop(initial_num_graphs - 1 - i)
                     break
 
     def add(self, dependent, dependency):
@@ -2174,6 +2167,9 @@ class PythonRecipe(Recipe):
     call_hostpython_via_targetpython is False.
     '''
 
+    setup_extra_args = []
+    '''List of extra arguments to pass to setup.py.'''
+
     @property
     def hostpython_location(self):
         if not self.call_hostpython_via_targetpython:
@@ -2215,12 +2211,20 @@ class PythonRecipe(Recipe):
             hostpython = sh.Command(self.hostpython_location)
 
             if self.call_hostpython_via_targetpython:
-                shprint(hostpython, 'setup.py', 'install', '-O2', _env=env)
+                shprint(hostpython, 'setup.py', 'install', '-O2', _env=env, *self.setup_extra_args)
             else:
+                hppath = join(dirname(self.hostpython_location), 'Lib',
+                              'site-packages')
+                hpenv = env.copy()
+                if 'PYTHONPATH' in hpenv:
+                    hpenv['PYTHONPATH'] = ':'.join(
+                            [hppath] + hpenv['PYTHONPATH'].split(':'))
+                else:
+                    hpenv['PYTHONPATH'] = hppath
                 shprint(hostpython, 'setup.py', 'install', '-O2',
                         '--root={}'.format(self.ctx.get_python_install_dir()),
                         '--install-lib=lib/python2.7/site-packages',
-                        _env=env)  # AND: Hardcoded python2.7 needs fixing
+                        _env=hpenv, *self.setup_extra_args)  # AND: Hardcoded python2.7 needs fixing
 
             # If asked, also install in the hostpython build dir
             if self.install_in_hostpython:
@@ -2246,8 +2250,15 @@ class CompiledComponentsPythonRecipe(PythonRecipe):
 
         env = self.get_recipe_env(arch)
         with current_directory(self.get_build_dir(arch.arch)):
-            hostpython = sh.Command(self.ctx.hostpython)
-            shprint(hostpython, 'setup.py', 'build_ext', '-v')
+            hostpython = sh.Command(self.hostpython_location)
+            if self.call_hostpython_via_targetpython:
+                shprint(hostpython, 'setup.py', 'build_ext', '-v', *self.setup_extra_args)
+            else:
+                hppath = join(dirname(self.hostpython_location), 'Lib',
+                              'site-packages')
+                hpenv = {'PYTHONPATH': hppath}
+                shprint(hostpython, 'setup.py', 'build_ext', '-v', _env=hpenv, *self.setup_extra_args)
+
             build_dir = glob.glob('build/lib.*')[0]
             shprint(sh.find, build_dir, '-name', '"*.o"', '-exec',
                     env['STRIP'], '{}', ';', _env=env)
@@ -2847,12 +2858,6 @@ build_dist
 
         args = parser.parse_args(args)
 
-        Fore = Out_Fore
-        Style = Out_Style
-        if not args.color:
-            Fore = Null_Fore
-            Style = Null_Style
-
         if args.compact:
             print(" ".join(list(Recipe.list_recipes())))
         else:
@@ -2860,21 +2865,25 @@ build_dist
             for name in sorted(Recipe.list_recipes()):
                 recipe = Recipe.get_recipe(name, ctx)
                 version = str(recipe.version)
-                print('{Fore.BLUE}{Style.BRIGHT}{recipe.name:<12} '
-                      '{Style.RESET_ALL}{Fore.LIGHTBLUE_EX}'
-                      '{version:<8}{Style.RESET_ALL}'.format(
-                          recipe=recipe, Fore=Fore, Style=Style,
-                          version=version))
-                print('    {Fore.GREEN}depends: {recipe.depends}'
-                      '{Fore.RESET}'.format(recipe=recipe, Fore=Fore))
-                if recipe.conflicts:
-                    print('    {Fore.RED}conflicts: {recipe.conflicts}'
-                          '{Fore.RESET}'
-                          .format(recipe=recipe, Fore=Fore))
-                if recipe.opt_depends:
-                    print('    {Fore.YELLOW}optional depends: '
-                          '{recipe.opt_depends}{Fore.RESET}'
-                          .format(recipe=recipe, Fore=Fore))
+                if args.color:
+                    print('{Fore.BLUE}{Style.BRIGHT}{recipe.name:<12} '
+                          '{Style.RESET_ALL}{Fore.LIGHTBLUE_EX}'
+                          '{version:<8}{Style.RESET_ALL}'.format(
+                              recipe=recipe, Fore=Out_Fore, Style=Out_Style,
+                              version=version))
+                    print('    {Fore.GREEN}depends: {recipe.depends}'
+                          '{Fore.RESET}'.format(recipe=recipe, Fore=Out_Fore))
+                    if recipe.conflicts:
+                        print('    {Fore.RED}conflicts: {recipe.conflicts}'
+                              '{Fore.RESET}'
+                              .format(recipe=recipe, Fore=Out_Fore))
+                else:
+                    print("{recipe.name:<12} {recipe.version:<8}"
+                          .format(recipe=recipe))
+                    print('    depends: {recipe.depends}'
+                          .format(recipe=recipe))
+                    print('    conflicts: {recipe.conflicts}'
+                          .format(recipe=recipe))
 
     def bootstraps(self, args):
         '''List all the bootstraps available to build with.'''
