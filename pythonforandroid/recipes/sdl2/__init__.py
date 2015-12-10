@@ -14,6 +14,12 @@ class LibSDL2Recipe(NDKRecipe):
 
     patches = ['add_nativeSetEnv.patch']
 
+    def get_recipe_env(self, arch=None):
+        env = super(LibSDL2Recipe, self).get_recipe_env(arch)
+        py2 = self.get_recipe('python2', arch.ctx)
+        env['PYTHON2_NAME'] = py2.get_dir_name()
+        return env
+
     def build_arch(self, arch):
         env = self.get_recipe_env(arch)
 

@@ -49,6 +49,10 @@ from colorama import Style as Colo_Style, Fore as Colo_Fore
 from collections import defaultdict
 
 
+# monkey patch to show full output
+sh.ErrorReturnCode.truncate_cap = 999999
+
+
 class colorama_shim(object):
 
     def __init__(self):
@@ -1815,9 +1819,13 @@ class Recipe(object):
         This returns a different directory depending on what
         alternative or optional dependencies are being built.
         '''
+        dir_name = self.get_dir_name()
+        return join(self.ctx.build_dir, 'other_builds', dir_name, arch)
+
+    def get_dir_name(self):
         choices = self.check_recipe_choices()
         dir_name = '-'.join([self.name] + choices)
-        return join(self.ctx.build_dir, 'other_builds', dir_name, arch)
+        return dir_name
 
     def get_build_dir(self, arch):
         '''Given the arch name, returns the directory where the
@@ -1931,7 +1939,7 @@ class Recipe(object):
                         sh.tar('xzf', extraction_filename)
                         root_directory = shprint(
                             sh.tar, 'tzf', extraction_filename).stdout.decode(
-                                'utf-8').split('\n')[0].strip('/')
+                                'utf-8').split('\n')[0].split('/')[0]
                         if root_directory != directory_name:
                             shprint(sh.mv, root_directory, directory_name)
                     elif (extraction_filename.endswith('.tar.bz2') or
