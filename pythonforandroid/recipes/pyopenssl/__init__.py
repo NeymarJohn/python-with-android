@@ -22,7 +22,7 @@ class PyOpenSSLRecipe(CompiledComponentsPythonRecipe):
         if exists(join(build_dir, '.patched')):
             print('pyOpenSSL already patched, skipping')
             return
-        self.apply_patch('fix-dlfcn.patch', arch.arch)
+        self.apply_patch('fix-dlfcn.patch')
         shprint(sh.touch, join(build_dir, '.patched'))
 
     def get_recipe_env(self, arch):
