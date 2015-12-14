@@ -98,11 +98,18 @@ class Recipe(object):
         elif parsed_url.scheme in ('git',):
             if isdir(target):
                 with current_directory(target):
+                    shprint(sh.git, 'fetch', '--tags')
+                    if self.version:
+                        shprint(sh.git, 'checkout', self.version)
                     shprint(sh.git, 'pull')
                     shprint(sh.git, 'pull', '--recurse-submodules')
                     shprint(sh.git, 'submodule', 'update', '--recursive')
             else:
                 shprint(sh.git, 'clone', '--recursive', url, target)
+                if self.version:
+                    with current_directory(target):
+                        shprint(sh.git, 'checkout', self.version)
+                        shprint(sh.git, 'submodule', 'update', '--recursive')
             return target
 
     def extract_source(self, source, cwd):
@@ -610,7 +617,7 @@ class PythonRecipe(Recipe):
         name = self.site_packages_name
         if name is None:
             name = self.name
-        if self.ctx.has_package(name):
+        if exists(join(self.ctx.get_site_packages_dir(), name)):
             info('Python package already exists in site-packages')
             return False
         info('{} apparently isn\'t already in site-packages'.format(name))
