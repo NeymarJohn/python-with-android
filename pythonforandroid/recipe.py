@@ -2,6 +2,8 @@ from os.path import join, dirname, isdir, exists, isfile
 import importlib
 import zipfile
 import glob
+from six import PY2
+
 import sh
 import shutil
 from os import listdir, unlink, environ, mkdir
@@ -12,6 +14,26 @@ except ImportError:
     from urllib.parse import urlparse
 from pythonforandroid.logger import (logger, info, warning, shprint, info_main)
 from pythonforandroid.util import (urlretrieve, current_directory, ensure_dir)
+
+import pythonforandroid.recipes
+
+
+if PY2:
+    import imp
+    import_recipe = imp.load_source
+else:
+    import importlib.util
+    if hasattr(importlib.util, 'module_from_spec'):
+        def import_recipe(module, filename):
+            spec = importlib.util.spec_from_file_location(module, filename)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            return mod
+    else:
+        from importlib.machinery import SourceFileLoader
+
+        def import_recipe(module, filename):
+            return SourceFileLoader(module, filename).load_module()
 
 
 class Recipe(object):
@@ -98,11 +120,18 @@ class Recipe(object):
         elif parsed_url.scheme in ('git',):
             if isdir(target):
                 with current_directory(target):
+                    shprint(sh.git, 'fetch', '--tags')
+                    if self.version:
+                        shprint(sh.git, 'checkout', self.version)
                     shprint(sh.git, 'pull')
                     shprint(sh.git, 'pull', '--recurse-submodules')
                     shprint(sh.git, 'submodule', 'update', '--recursive')
             else:
                 shprint(sh.git, 'clone', '--recursive', url, target)
+                if self.version:
+                    with current_directory(target):
+                        shprint(sh.git, 'checkout', self.version)
+                        shprint(sh.git, 'submodule', 'update', '--recursive')
             return target
 
     def extract_source(self, source, cwd):
@@ -505,15 +534,22 @@ class Recipe(object):
                      'did not exist').format(self.name))
 
     @classmethod
-    def list_recipes(cls):
+    def recipe_dirs(cls, ctx):
+        return [ctx.local_recipes,
+                join(ctx.storage_dir, 'recipes'),
+                join(ctx.root_dir, "recipes")]
+
+    @classmethod
+    def list_recipes(cls, ctx):
         forbidden_dirs = ('__pycache__', )
-        recipes_dir = join(dirname(__file__), "recipes")
-        for name in listdir(recipes_dir):
-            if name in forbidden_dirs:
-                continue
-            fn = join(recipes_dir, name)
-            if isdir(fn):
-                yield name
+        for recipes_dir in cls.recipe_dirs(ctx):
+            if recipes_dir and exists(recipes_dir):
+                for name in listdir(recipes_dir):
+                    if name in forbidden_dirs:
+                        continue
+                    fn = join(recipes_dir, name)
+                    if isdir(fn):
+                        yield name
 
     @classmethod
     def get_recipe(cls, name, ctx):
@@ -522,16 +558,22 @@ class Recipe(object):
             cls.recipes = {}
         if name in cls.recipes:
             return cls.recipes[name]
-        recipe_dir = join(ctx.root_dir, 'recipes', name)
-        if not exists(recipe_dir):  # AND: This will need modifying
-                                    # for user-supplied recipes
+
+        recipe_file = None
+        for recipes_dir in cls.recipe_dirs(ctx):
+            recipe_file = join(recipes_dir, name, '__init__.py')
+            if exists(recipe_file):
+                break
+            recipe_file = None
+
+        if not recipe_file:
             raise IOError('Recipe folder does not exist')
-        mod = importlib.import_module(
-            "pythonforandroid.recipes.{}".format(name))
+
+        mod = import_recipe('pythonforandroid.recipes.{}'.format(name), recipe_file)
         if len(logger.handlers) > 1:
             logger.removeHandler(logger.handlers[1])
         recipe = mod.recipe
-        recipe.recipe_dir = recipe_dir
+        recipe.recipe_dir = dirname(recipe_file)
         recipe.ctx = ctx
         return recipe
 
@@ -549,15 +591,13 @@ class IncludedFilesBehaviour(object):
                 self.get_build_dir(arch))
 
 
-class NDKRecipe(Recipe):
+class BootstrapNDKRecipe(Recipe):
     '''A recipe class for recipes built in an Android project jni dir with
     an Android.mk. These are not cached separatly, but built in the
     bootstrap's own building directory.
 
-    In the future they should probably also copy their contents from a
-    standalone set of ndk recipes, but for now the bootstraps include
-    all their recipe code.
-
+    To build an NDK project which is not part of the bootstrap, see
+    :class:`~pythonforandroid.recipe.NDKRecipe`.
     '''
 
     dir_name = None  # The name of the recipe build folder in the jni dir
@@ -573,6 +613,34 @@ class NDKRecipe(Recipe):
 
     def get_jni_dir(self):
         return join(self.ctx.bootstrap.build_dir, 'jni')
+
+
+class NDKRecipe(Recipe):
+    '''A recipe class for any NDK project not included in the bootstrap.'''
+
+    generated_libraries = []
+
+    def should_build(self, arch):
+        lib_dir = self.get_lib_dir(arch)
+
+        for lib in self.generated_libraries:
+            if not exists(join(lib_dir, lib)):
+                return True
+
+        return False
+
+    def get_lib_dir(self, arch):
+        return join(self.get_build_dir(arch.arch), 'obj', 'local', arch.arch)
+
+    def get_jni_dir(self, arch):
+        return join(self.get_build_dir(arch.arch), 'jni')
+
+    def build_arch(self, arch, *extra_args):
+        super(NDKRecipe, self).build_arch(arch)
+
+        env = self.get_recipe_env(arch)
+        with current_directory(self.get_build_dir(arch.arch)):
+            shprint(sh.ndk_build, 'V=1', 'APP_ABI=' + arch.arch, *extra_args, _env=env)
 
 
 class PythonRecipe(Recipe):
@@ -610,7 +678,7 @@ class PythonRecipe(Recipe):
         name = self.site_packages_name
         if name is None:
             name = self.name
-        if exists(join(self.ctx.get_site_packages_dir(), name)):
+        if self.ctx.has_package(name):
             info('Python package already exists in site-packages')
             return False
         info('{} apparently isn\'t already in site-packages'.format(name))
@@ -641,10 +709,18 @@ class PythonRecipe(Recipe):
                 shprint(hostpython, 'setup.py', 'install', '-O2', _env=env,
                         *self.setup_extra_args)
             else:
+                hppath = join(dirname(self.hostpython_location), 'Lib',
+                              'site-packages')
+                hpenv = env.copy()
+                if 'PYTHONPATH' in hpenv:
+                    hpenv['PYTHONPATH'] = ':'.join([hppath] +
+                                                   hpenv['PYTHONPATH'].split(':'))
+                else:
+                    hpenv['PYTHONPATH'] = hppath
                 shprint(hostpython, 'setup.py', 'install', '-O2',
                         '--root={}'.format(self.ctx.get_python_install_dir()),
                         '--install-lib=lib/python2.7/site-packages',
-                        _env=env, *self.setup_extra_args)
+                        _env=hpenv, *self.setup_extra_args)
                 # AND: Hardcoded python2.7 needs fixing
 
             # If asked, also install in the hostpython build dir
@@ -657,6 +733,8 @@ class PythonRecipe(Recipe):
 
 class CompiledComponentsPythonRecipe(PythonRecipe):
     pre_build_ext = False
+
+    build_cmd = 'build_ext'
 
     def build_arch(self, arch):
         '''Build any cython components, then install the Python module by
@@ -673,13 +751,16 @@ class CompiledComponentsPythonRecipe(PythonRecipe):
         with current_directory(self.get_build_dir(arch.arch)):
             hostpython = sh.Command(self.hostpython_location)
             if self.call_hostpython_via_targetpython:
-                shprint(hostpython, 'setup.py', 'build_ext', '-v',
-                        *self.setup_extra_args)
+                shprint(hostpython, 'setup.py', self.build_cmd, '-v',
+                        _env=env, *self.setup_extra_args)
             else:
                 hppath = join(dirname(self.hostpython_location), 'Lib',
                               'site-packages')
-                hpenv = {'PYTHONPATH': hppath}
-                shprint(hostpython, 'setup.py', 'build_ext', '-v', _env=hpenv,
+                if 'PYTHONPATH' in env:
+                    env['PYTHONPATH'] = hppath + ':' + env['PYTHONPATH']
+                else:
+                    env['PYTHONPATH'] = hppath
+                shprint(hostpython, 'setup.py', self.build_cmd, '-v', _env=env,
                         *self.setup_extra_args)
             build_dir = glob.glob('build/lib.*')[0]
             shprint(sh.find, build_dir, '-name', '"*.o"', '-exec',
