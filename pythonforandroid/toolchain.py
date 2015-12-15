@@ -261,11 +261,6 @@ build_dist
             description=('Whether the dist recipes must perfectly match '
                          'those requested'))
 
-        parser.add_argument(
-            '--local-recipes', '--local_recipes',
-            dest='local_recipes', default='./p4a-recipes',
-            help='Directory to look for local recipes')
-
         self._read_configuration()
 
         args, unknown = parser.parse_known_args(sys.argv[1:])
@@ -298,9 +293,6 @@ build_dist
             print('Unrecognized command')
             parser.print_help()
             exit(1)
-
-        self.ctx.local_recipes = args.local_recipes
-
         getattr(self, args.command)(unknown)
 
     def _read_configuration(self):
@@ -330,9 +322,9 @@ build_dist
                 help="Produce a compact list suitable for scripting")
 
         add_boolean_option(
-                parser, ["color"],
-                default=True,
-                description='Whether the output should be colored:')
+            parser, ["color"],
+            default=True,
+            description='Whether the output should be colored:')
 
         args = parser.parse_args(args)
 
@@ -342,18 +334,18 @@ build_dist
             Fore = Null_Fore
             Style = Null_Style
 
-        ctx = self.ctx
         if args.compact:
-            print(" ".join(set(Recipe.list_recipes(ctx))))
+            print(" ".join(list(Recipe.list_recipes())))
         else:
-            for name in sorted(Recipe.list_recipes(ctx)):
+            ctx = self.ctx
+            for name in sorted(Recipe.list_recipes()):
                 recipe = Recipe.get_recipe(name, ctx)
                 version = str(recipe.version)
                 print('{Fore.BLUE}{Style.BRIGHT}{recipe.name:<12} '
                       '{Style.RESET_ALL}{Fore.LIGHTBLUE_EX}'
                       '{version:<8}{Style.RESET_ALL}'.format(
-                        recipe=recipe, Fore=Fore, Style=Style,
-                        version=version))
+                          recipe=recipe, Fore=Fore, Style=Style,
+                          version=version))
                 print('    {Fore.GREEN}depends: {recipe.depends}'
                       '{Fore.RESET}'.format(recipe=recipe, Fore=Fore))
                 if recipe.conflicts:
