@@ -448,7 +448,7 @@ class Recipe(object):
         '''Run any pre-build tasks for the Recipe. By default, this checks if
         any prebuild_archname methods exist for the archname of the current
         architecture, and runs them if so.'''
-        prebuild = "prebuild_{}".format(arch.arch.replace('-', '_'))
+        prebuild = "prebuild_{}".format(arch.arch)
         if hasattr(self, prebuild):
             getattr(self, prebuild)()
         else:
@@ -570,7 +570,7 @@ class Recipe(object):
             recipe_file = None
 
         if not recipe_file:
-            raise IOError('Recipe does not exist: {}'.format(name))
+            raise IOError('Recipe folder does not exist')
 
         mod = import_recipe('pythonforandroid.recipes.{}'.format(name), recipe_file)
         if len(logger.handlers) > 1:
@@ -591,6 +591,7 @@ class IncludedFilesBehaviour(object):
         if self.src_filename is None:
             print('IncludedFilesBehaviour failed: no src_filename specified')
             exit(1)
+        shprint(sh.rm, '-rf', self.get_build_dir(arch))
         shprint(sh.cp, '-a', join(self.get_recipe_dir(), self.src_filename),
                 self.get_build_dir(arch))
 
