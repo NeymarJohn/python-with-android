@@ -98,11 +98,10 @@ def require_prebuilt_dist(func):
                                       user_android_api=self.android_api,
                                       user_ndk_ver=self.ndk_version)
         dist = self._dist
-        dist_args, args = parse_dist_args(args)
         if dist.needs_build:
             info_notify('No dist exists that meets your requirements, '
                         'so one will be built.')
-            build_dist_from_args(ctx, dist, dist_args)
+            args = build_dist_from_args(ctx, dist, args)
         func(self, args)
     return wrapper_func
 
@@ -121,9 +120,20 @@ def dist_from_args(ctx, dist_args):
         require_perfect_match=dist_args.require_perfect_match)
 
 
-def build_dist_from_args(ctx, dist, args):
+def build_dist_from_args(ctx, dist, args_list):
     '''Parses out any bootstrap related arguments, and uses them to build
     a dist.'''
+    parser = argparse.ArgumentParser(
+        description='Create a newAndroid project')
+    parser.add_argument(
+        '--bootstrap',
+        help=('The name of the bootstrap type, \'pygame\' '
+              'or \'sdl2\', or leave empty to let a '
+              'bootstrap be chosen automatically from your '
+              'requirements.'),
+        default=None)
+    args, unknown = parser.parse_known_args(args_list)
+
     bs = Bootstrap.get_bootstrap(args.bootstrap, ctx)
     build_order, python_modules, bs \
         = get_recipe_order_and_bootstrap(ctx, dist.recipes, bs)
@@ -146,19 +156,8 @@ def build_dist_from_args(ctx, dist, args):
     info('Dist can be found at (for now) {}'
          .format(join(ctx.dist_dir, ctx.dist_name)))
 
+    return unknown
 
-def parse_dist_args(args_list):
-    parser = argparse.ArgumentParser(
-            description='Create a newAndroid project')
-    parser.add_argument(
-            '--bootstrap',
-            help=('The name of the bootstrap type, \'pygame\' '
-                  'or \'sdl2\', or leave empty to let a '
-                  'bootstrap be chosen automatically from your '
-                  'requirements.'),
-            default=None)
-    args, unknown = parser.parse_known_args(args_list)
-    return args, unknown
 
 
 def split_argument_list(l):
