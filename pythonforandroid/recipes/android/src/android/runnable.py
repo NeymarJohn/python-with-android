@@ -5,10 +5,9 @@ Runnable
 '''
 
 from jnius import PythonJavaClass, java_method, autoclass
-from android.config import JAVA_NAMESPACE
 
 # reference to the activity
-_PythonActivity = autoclass(JAVA_NAMESPACE + '.PythonActivity')
+_PythonActivity = autoclass('org.renpy.android.PythonActivity')
 
 
 class Runnable(PythonJavaClass):
