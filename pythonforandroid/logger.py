@@ -92,12 +92,8 @@ def shorten_string(string, max_width):
         return string
     visible = max_width - 16 - int(log10(string_len))
     # expected suffix len "...(and XXXXX more)"
-    if not isinstance(string, unistr):
-        visstring = unistr(string[:visible], errors='ignore')
-    else:
-        visstring = string[:visible]
-    return u''.join((visstring, u'...(and ',
-                     unistr(string_len - visible), u' more)'))
+    return u''.join((string[:visible], u'...(and ', str(string_len - visible),
+                    u' more)'))
 
 
 def get_console_width():
@@ -208,6 +204,3 @@ def shprint(command, *args, **kwargs):
             raise
 
     return output
-
-
-from pythonforandroid.util import unistr
