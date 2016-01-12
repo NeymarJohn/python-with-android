@@ -443,12 +443,12 @@ class Recipe(object):
             else:
                 info('{} is already unpacked, skipping'.format(self.name))
 
-    def get_recipe_env(self, arch=None):
+    def get_recipe_env(self, arch=None, with_flags_in_cc=True):
         """Return the env specialized for the recipe
         """
         if arch is None:
             arch = self.filtered_archs[0]
-        return arch.get_env()
+        return arch.get_env(with_flags_in_cc=with_flags_in_cc)
 
     def prebuild_arch(self, arch):
         '''Run any pre-build tasks for the Recipe. By default, this checks if
@@ -896,8 +896,8 @@ class CythonRecipe(PythonRecipe):
     #         for filename in fnmatch.filter(filenames, "*.pyx"):
     #             self.cythonize_file(join(root, filename))
 
-    def get_recipe_env(self, arch):
-        env = super(CythonRecipe, self).get_recipe_env(arch)
+    def get_recipe_env(self, arch, with_flags_in_cc=True):
+        env = super(CythonRecipe, self).get_recipe_env(arch, with_flags_in_cc)
         env['LDFLAGS'] = env['LDFLAGS'] + ' -L{} '.format(
             self.ctx.get_libs_dir(arch.arch) +
             ' -L{} '.format(self.ctx.libs_dir))
@@ -908,12 +908,10 @@ class CythonRecipe(PythonRecipe):
         if self.ctx.python_recipe.from_crystax:
             env['LDSHARED'] = env['CC'] + ' -shared'
         else:
-            env['LDSHARED'] = join(self.ctx.root_dir, 'tools', 'liblink.sh')
+            env['LDSHARED'] = join(self.ctx.root_dir, 'tools', 'liblink')
         # shprint(sh.whereis, env['LDSHARED'], _env=env)
         env['LIBLINK'] = 'NOTNONE'
         env['NDKPLATFORM'] = self.ctx.ndk_platform
-        if self.ctx.copy_libs:
-            env['COPYLIBS'] = '1'
 
         # Every recipe uses its own liblink path, object files are
         # collected and biglinked later
