@@ -30,7 +30,7 @@ class Arch(object):
                 d.format(arch=self))
             for d in self.ctx.include_dirs]
 
-    def get_env(self, with_flags_in_cc=True):
+    def get_env(self):
         env = {}
 
         env["CFLAGS"] = " ".join([
@@ -72,22 +72,14 @@ class Arch(object):
                     'installed. Exiting.')
             exit(1)
 
-        if with_flags_in_cc:
-            env['CC'] = '{ccache}{command_prefix}-gcc {cflags}'.format(
-                command_prefix=command_prefix,
-                ccache=ccache,
-                cflags=env['CFLAGS'])
-            env['CXX'] = '{ccache}{command_prefix}-g++ {cxxflags}'.format(
-                command_prefix=command_prefix,
-                ccache=ccache,
-                cxxflags=env['CXXFLAGS'])
-        else:
-            env['CC'] = '{ccache}{command_prefix}-gcc'.format(
-                command_prefix=command_prefix,
-                ccache=ccache)
-            env['CXX'] = '{ccache}{command_prefix}-g++'.format(
-                command_prefix=command_prefix,
-                ccache=ccache)
+        env['CC'] = '{ccache}{command_prefix}-gcc {cflags}'.format(
+            command_prefix=command_prefix,
+            ccache=ccache,
+            cflags=env['CFLAGS'])
+        env['CXX'] = '{ccache}{command_prefix}-g++ {cxxflags}'.format(
+            command_prefix=command_prefix,
+            ccache=ccache,
+            cxxflags=env['CXXFLAGS'])
 
         env['AR'] = '{}-ar'.format(command_prefix)
         env['RANLIB'] = '{}-ranlib'.format(command_prefix)
@@ -126,8 +118,8 @@ class ArchARM(Arch):
 class ArchARMv7_a(ArchARM):
     arch = 'armeabi-v7a'
 
-    def get_env(self, with_flags_in_cc=True):
-        env = super(ArchARMv7_a, self).get_env(with_flags_in_cc)
+    def get_env(self):
+        env = super(ArchARMv7_a, self).get_env()
         env['CFLAGS'] = (env['CFLAGS'] +
                          (' -march=armv7-a -mfloat-abi=softfp '
                           '-mfpu=vfp -mthumb'))
@@ -141,8 +133,8 @@ class Archx86(Arch):
     command_prefix = 'i686-linux-android'
     platform_dir = 'arch-x86'
 
-    def get_env(self, with_flags_in_cc=True):
-        env = super(Archx86, self).get_env(with_flags_in_cc)
+    def get_env(self):
+        env = super(Archx86, self).get_env()
         env['CFLAGS'] = (env['CFLAGS'] +
                          ' -march=i686 -mtune=intel -mssse3 -mfpmath=sse -m32')
         env['CXXFLAGS'] = env['CFLAGS']
@@ -155,8 +147,8 @@ class Archx86_64(Arch):
     command_prefix = 'x86_64-linux-android'
     platform_dir = 'arch-x86'
 
-    def get_env(self, with_flags_in_cc=True):
-        env = super(Archx86_64, self).get_env(with_flags_in_cc)
+    def get_env(self):
+        env = super(Archx86_64, self).get_env()
         env['CFLAGS'] = (env['CFLAGS'] +
                          ' -march=x86-64 -msse4.2 -mpopcnt -m64 -mtune=intel')
         env['CXXFLAGS'] = env['CFLAGS']

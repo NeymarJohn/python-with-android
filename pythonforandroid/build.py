@@ -585,12 +585,7 @@ def run_pymodules_install(ctx, modules):
         info('Creating a requirements.txt file for the Python modules')
         with open('requirements.txt', 'w') as fileh:
             for module in modules:
-                key = 'VERSION_' + module
-                if key in environ:
-                    line = '{}=={}\n'.format(module, environ[key])
-                else:
-                    line = '{}\n'.format(module)
-                fileh.write(line)
+                fileh.write('{}\n'.format(module))
 
         info('Installing Python modules with pip')
         info('If this fails with a message about /bin/false, this '
