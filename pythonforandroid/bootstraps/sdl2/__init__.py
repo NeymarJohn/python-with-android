@@ -1,5 +1,5 @@
 from pythonforandroid.toolchain import Bootstrap, shprint, current_directory, info, warning, ArchARM, info_main
-from os.path import join, exists
+from os.path import join, exists, curdir, abspath
 from os import walk
 import glob
 import sh
@@ -109,6 +109,8 @@ class SDL2Bootstrap(Bootstrap):
                     if len(parts) <= 2:
                         continue
                     shprint(sh.mv, filen, filen.split('.')[0] + '.so')
+                site_packages_dir = join(abspath(curdir),
+                                         site_packages_dir)
 
 
         self.strip_libraries(arch)
