@@ -70,13 +70,18 @@ linked above.
 
 Relating to all bootstraps:
 - Some recipes/components aren't stripped properly of doc etc.
-- Downloaded file md5 and headers aren't checked
+- Some command line options of distribute.sh
+- Biglink is essential (the p4a disable option isn't implemented)
 
 Relating to SDL2 only:
+- Downloaded file md5 and headers aren't checked
+- Android services are not implemented at all
+- App loading screen
 - Public dir installation
 - Keyboard height getter
 - Billing support
 - Kivy Launcher build (can now be implemented as a bootstrap...maybe?)
+- Several build options for build.py
 - Probably some other stuff
 
 Here are some specific things relating to changes in p4a itself since
@@ -84,7 +89,7 @@ the reference commit that the revamp is based on:
 
 # Current status
 
-python-for-android is fully ready for use. We are working towards a versioned release.
+The tool works, testing is welcomed.
 
 # Development notes
 
