@@ -60,11 +60,10 @@ class Graph(object):
 
     def conflicts(self, conflict):
         graphs = self.graphs
-        initial_num = len(graphs)
         for i in range(len(graphs)):
-            graph = graphs[initial_num - 1 - i]
+            graph = graphs[len(graphs) - 1 - i]
             if conflict in graph:
-                graphs.pop(initial_num - 1 - i)
+                graphs.pop(len(graphs) - 1 - i)
         return len(graphs) == 0
 
     def remove_remaining_conflicts(self, ctx):
@@ -228,8 +227,6 @@ def get_recipe_order_and_bootstrap(ctx, names, bs=None):
             recipe_loaded.append(name)
         graph.remove_remaining_conflicts(ctx)
         build_order = list(graph.find_order(0))
-        build_order, python_modules, bs = get_recipe_order_and_bootstrap(
-            ctx, build_order + python_modules, bs)
     return build_order, python_modules, bs
 
     # Do a final check that the new bs doesn't pull in any conflicts
