@@ -29,21 +29,10 @@ public class PythonService extends Service implements Runnable {
     private String serviceEntrypoint;
     // Argument to pass to Python code,
     private String pythonServiceArgument;
-    public static PythonService mService = null;
-    private Intent startIntent = null;
-
-    private boolean autoRestartService = false;
-
-    public void setAutoRestartService(boolean restart) {
-        autoRestartService = restart;
-    }
+    public static Service mService = null;
 
     public boolean canDisplayNotification() {
         return true;
-    }
-
-    public int startType() {
-        return START_NOT_STICKY;
     }
 
     @Override
@@ -63,7 +52,6 @@ public class PythonService extends Service implements Runnable {
             return START_NOT_STICKY;
         }
 
-		startIntent = intent;
         Bundle extras = intent.getExtras();
         androidPrivate = extras.getString("androidPrivate");
         androidArgument = extras.getString("androidArgument");
@@ -76,35 +64,31 @@ public class PythonService extends Service implements Runnable {
         pythonThread = new Thread(this);
         pythonThread.start();
 
-        if (canDisplayNotification()) {
-            doStartForeground(extras);
-        }
+        doStartForeground(extras);
 
-        return startType();
+        return START_NOT_STICKY;
     }
 
     protected void doStartForeground(Bundle extras) {
-        String serviceTitle = extras.getString("serviceTitle");
-        String serviceDescription = extras.getString("serviceDescription");
+        if (canDisplayNotification()) {
+            String serviceTitle = extras.getString("serviceTitle");
+            String serviceDescription = extras.getString("serviceDescription");
 
-        Context context = getApplicationContext();
-        Notification notification = new Notification(context.getApplicationInfo().icon,
-            serviceTitle, System.currentTimeMillis());
-        Intent contextIntent = new Intent(context, PythonActivity.class);
-        PendingIntent pIntent = PendingIntent.getActivity(context, 0, contextIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT);
-        notification.setLatestEventInfo(context, serviceTitle, serviceDescription, pIntent);
-        startForeground(1, notification);
+            Context context = getApplicationContext();
+            Notification notification = new Notification(context.getApplicationInfo().icon,
+                serviceTitle, System.currentTimeMillis());
+            Intent contextIntent = new Intent(context, PythonActivity.class);
+            PendingIntent pIntent = PendingIntent.getActivity(context, 0, contextIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+            notification.setLatestEventInfo(context, serviceTitle, serviceDescription, pIntent);
+            startForeground(1, notification);
+        }
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         pythonThread = null;
-        if (autoRestartService && startIntent != null) {
-            Log.v("python service", "service restart requested");
-            startService(startIntent);
-        }
         Process.killProcess(Process.myPid());
     }
 
