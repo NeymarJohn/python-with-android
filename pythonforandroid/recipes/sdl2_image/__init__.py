@@ -3,12 +3,14 @@ from pythonforandroid.patching import is_arch
 
 
 class LibSDL2Image(BootstrapNDKRecipe):
-    version = '2.0.1'
+    version = '2.0.0'
     url = 'https://www.libsdl.org/projects/SDL_image/release/SDL2_image-{version}.tar.gz'
     dir_name = 'SDL2_image'
 
-    patches = ['toggle_jpg_png_webp.patch',
+    patches = ['disable_webp.patch',
                ('disable_jpg.patch', is_arch('x86')),
-               'extra_cflags.patch']
+               'extra-cflags.patch',
+               ('disable-assembler.patch', is_arch('arm64-v8a'))]
+
 
 recipe = LibSDL2Image()
