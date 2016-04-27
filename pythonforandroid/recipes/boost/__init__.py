@@ -2,10 +2,8 @@ from pythonforandroid.toolchain import Recipe, shprint, shutil, current_director
 from os.path import join, exists
 import sh
 
-"""
-This recipe creates a custom toolchain and bootstraps Boost from source to build Boost.Build
-including python bindings
-"""
+# This recipe creates a custom toolchain and bootstraps Boost from source to build Boost.Build
+# including python bindings
 class BoostRecipe(Recipe):
     version = '1.60.0'
     # Don't forget to change the URL when changing the version
@@ -50,7 +48,7 @@ class BoostRecipe(Recipe):
                         join(self.ctx.get_libs_dir(arch.arch), 'libgnustl_shared.so'))
 
     def select_build_arch(self, arch):
-        return arch.arch.replace('eabi-v7a', '').replace('eabi', '')
+        return arch.arch.replace('eabi', '')
 
     def get_recipe_env(self, arch):
         env = super(BoostRecipe, self).get_recipe_env(arch)
@@ -63,6 +61,5 @@ class BoostRecipe(Recipe):
         env['CROSSHOME'] = join(env['BOOST_ROOT'], 'standalone-' + env['ARCH'] + '-toolchain')
         env['TOOLCHAIN_PREFIX'] = join(env['CROSSHOME'], 'bin', env['CROSSHOST'])
         return env
-
 
 recipe = BoostRecipe()
