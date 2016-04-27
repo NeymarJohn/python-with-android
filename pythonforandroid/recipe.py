@@ -565,13 +565,9 @@ class Recipe(with_metaclass(RecipeMeta)):
                 info('Deleting {}'.format(directory))
                 shutil.rmtree(directory)
 
-    def install_libs(self, arch, *libs):
+    def install_libs(self, arch, lib, *libs):
         libs_dir = self.ctx.get_libs_dir(arch.arch)
-        if not libs:
-            warning('install_libs called with no libraries to install!')
-            return
-        args = libs + (libs_dir,)
-        shprint(sh.cp, *args)
+        shprint(sh.cp, '-t', libs_dir, lib, *libs)
 
     def has_libs(self, arch, *libs):
         return all(map(lambda l: self.ctx.has_lib(arch.arch, l), libs))
@@ -581,9 +577,8 @@ class Recipe(with_metaclass(RecipeMeta)):
         recipe_dirs = []
         if ctx.local_recipes is not None:
             recipe_dirs.append(ctx.local_recipes)
-        if ctx.storage_dir:
-            recipe_dirs.append(join(ctx.storage_dir, 'recipes'))
-        recipe_dirs.append(join(ctx.root_dir, "recipes"))
+        recipe_dirs.extend([join(ctx.storage_dir, 'recipes'),
+                            join(ctx.root_dir, "recipes")])
         return recipe_dirs
 
     @classmethod

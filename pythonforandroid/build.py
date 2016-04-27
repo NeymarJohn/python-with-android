@@ -8,6 +8,7 @@ import glob
 import sys
 import re
 import sh
+from appdirs import user_data_dir
 
 from pythonforandroid.util import (ensure_dir, current_directory)
 from pythonforandroid.logger import (info, warning, error, info_notify,
@@ -87,22 +88,19 @@ class Context(object):
         dir = join(self.python_installs_dir, self.bootstrap.distribution.name)
         return dir
 
-    def setup_dirs(self, storage_dir):
+    def setup_dirs(self):
         '''Calculates all the storage and build dirs, and makes sure
         the directories exist where necessary.'''
-        self.storage_dir = expanduser(storage_dir)
-        if ' ' in self.storage_dir:
-            raise ValueError('storage dir path cannot contain spaces, please '
-                             'specify a path with --storage-dir')
+        self.root_dir = realpath(dirname(__file__))
+
+        # AND: TODO: Allow the user to set the build_dir
+        self.storage_dir = user_data_dir('python-for-android')
         self.build_dir = join(self.storage_dir, 'build')
         self.dist_dir = join(self.storage_dir, 'dists')
 
-    def ensure_dirs(self):
         ensure_dir(self.storage_dir)
         ensure_dir(self.build_dir)
         ensure_dir(self.dist_dir)
-        ensure_dir(join(self.build_dir, 'bootstrap_builds'))
-        ensure_dir(join(self.build_dir, 'other_builds'))
 
     @property
     def android_api(self):
@@ -164,8 +162,6 @@ class Context(object):
         ..warning:: This *must* be called before trying any build stuff
 
         '''
-
-        self.ensure_dirs()
 
         if self._build_env_prepared:
             return
@@ -438,6 +434,9 @@ class Context(object):
         self.local_recipes = None
         self.copy_libs = False
 
+        # root of the toolchain
+        self.setup_dirs()
+
         # this list should contain all Archs, it is pruned later
         self.archs = (
             ArchARM(self),
@@ -446,7 +445,9 @@ class Context(object):
             ArchAarch_64(self),
             )
 
-        self.root_dir = realpath(dirname(__file__))
+        ensure_dir(join(self.build_dir, 'bootstrap_builds'))
+        ensure_dir(join(self.build_dir, 'other_builds'))
+        # other_builds: where everything else is built
 
         # remove the most obvious flags that can break the compilation
         self.env.pop("LDFLAGS", None)
