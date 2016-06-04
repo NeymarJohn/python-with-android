@@ -412,7 +412,7 @@ A Recipe template
 -----------------
 
 The following template includes all the recipe sections you might
-use. None are compulsory, feel free to delete method
+use. Note that none are compulsory, feel free to delete method
 overrides if you do not use them::
 
     from pythonforandroid.toolchain import Recipe, shprint, current_directory
@@ -427,7 +427,6 @@ overrides if you do not use them::
 
         version = 'some_version_string'
         url = 'http://example.com/example-{version}.tar.gz'
-        # {version} will be replaced with self.version when downloading
 
         depends = ['python2', 'numpy']  # A list of any other recipe names
                                         # that must be built before this
@@ -470,11 +469,13 @@ overrides if you do not use them::
 Examples of recipes
 -------------------
 
-This documentation covers most of what is ever necessary to make a
-recipe work. For further examples, python-for-android includes many
-recipes for popular modules, which are an excellent resource to find
-out how to add your own. You can find these in the `python-for-android
-Github page
+The above documentation has included a number of snippets
+demonstrating different behaviour. Together, these cover most of what
+is ever necessary to make a recipe work.
+
+python-for-android includes many recipes for popular modules, which
+are an excellent resource to find out how to add your own. You can
+find these in the `python-for-android Github page
 <https://github.com/kivy/python-for-android/tree/master/pythonforandroid/recipes>`__.
 
 
