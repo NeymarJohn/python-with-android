@@ -11,13 +11,10 @@ class LibTriblerRecipe(PythonRecipe):
 
     url = 'git+https://github.com/Tribler/tribler.git'
 
-    depends = ['apsw', 'cryptography', 'ffmpeg', 'libsodium', 'libtorrent', 'm2crypto',
-               'netifaces', 'openssl', 'pil', 'pycrypto', 'pyleveldb', 'python2', 'twisted',
-              ]
-
-    python_depends = ['chardet', 'cherrypy', 'configobj', 'decorator', 'feedparser',
-                      'libnacl', 'pyasn1', 'requests', 'six',
-                     ]
+    depends = ['apsw', 'cherrypy', 'cryptography', 'decorator', 'feedparser',
+               'ffmpeg', 'libnacl', 'libsodium', 'libtorrent', 'm2crypto',
+               'netifaces', 'openssl', 'pyasn1', 'pil', 'pycrypto', 'pyleveldb',
+               'python2', 'requests', 'twisted']
 
     site_packages_name = 'Tribler'
 
