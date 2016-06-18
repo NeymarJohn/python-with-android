@@ -3,7 +3,7 @@ from os.path import exists, join
 import sh
 
 
-class GenericNDKBuildRecipe(BootstrapNDKRecipe):
+class WebViewJNIRecipe(BootstrapNDKRecipe):
     version = None
     url = None
 
@@ -14,7 +14,7 @@ class GenericNDKBuildRecipe(BootstrapNDKRecipe):
         return True
 
     def get_recipe_env(self, arch=None):
-        env = super(GenericNDKBuildRecipe, self).get_recipe_env(arch)
+        env = super(WebViewJNIRecipe, self).get_recipe_env(arch)
         py2 = self.get_recipe('python2', arch.ctx)
         env['PYTHON2_NAME'] = py2.get_dir_name()
         if 'python2' in self.ctx.recipe_build_order:
@@ -28,4 +28,4 @@ class GenericNDKBuildRecipe(BootstrapNDKRecipe):
             shprint(sh.ndk_build, "V=1", _env=env)
 
 
-recipe = GenericNDKBuildRecipe()
+recipe = WebViewJNIRecipe()
