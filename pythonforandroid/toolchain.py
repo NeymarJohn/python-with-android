@@ -330,9 +330,7 @@ build_dist
         #             'handled, exiting.')
         #     exit(1)
 
-        command_method_name = args.command.replace('-', '_')
-
-        if not hasattr(self, command_method_name):
+        if not hasattr(self, args.command):
             print('Unrecognized command')
             parser.print_help()
             exit(1)
@@ -340,7 +338,7 @@ build_dist
         self.ctx.local_recipes = args.local_recipes
         self.ctx.copy_libs = args.copy_libs
 
-        getattr(self, command_method_name)(unknown)
+        getattr(self, args.command)(unknown)
 
     @property
     def default_storage_dir(self):
