@@ -423,7 +423,13 @@ class Recipe(with_metaclass(RecipeMeta)):
                     self.ctx.packages_path, self.name, filename)
                 if isfile(extraction_filename):
                     if extraction_filename.endswith('.zip'):
-                        sh.unzip(extraction_filename)
+                        try:
+                            sh.unzip(extraction_filename)
+                        except (sh.ErrorReturnCode_1, sh.ErrorReturnCode_2):
+                            pass  # return code 1 means unzipping had
+                                  # warnings but did complete,
+                                  # apparently happens sometimes with
+                                  # github zips
                         import zipfile
                         fileh = zipfile.ZipFile(extraction_filename, 'r')
                         root_directory = fileh.filelist[0].filename.split('/')[0]
@@ -893,6 +899,29 @@ class CompiledComponentsPythonRecipe(PythonRecipe):
         shprint(hostpython, 'setup.py', 'clean', '--all', _env=env)
         shprint(hostpython, 'setup.py', self.build_cmd, '-v', _env=env,
                 *self.setup_extra_args)
+
+class CppCompiledComponentsPythonRecipe(CompiledComponentsPythonRecipe):
+    pass
+#     call_hostpython_via_targetpython = False
+# 
+#     def get_recipe_env(self, arch):
+#         env = super(CppCompiledComponentsPythonRecipe, self).get_recipe_env(arch)
+#         keys = dict(
+#             ctx=self.ctx,
+#             arch=arch,
+#             arch_noeabi=arch.arch.replace('eabi', ''),
+#             pyroot=self.ctx.get_python_install_dir()
+#         )
+#         env['LDSHARED'] = env['CC'] + ' -pthread -shared -Wl,-O1 -Wl,-Bsymbolic-functions'
+#         env['CFLAGS'] += " -I{pyroot}/include/python2.7 " \
+#                         " -I{ctx.ndk_dir}/platforms/android-{ctx.android_api}/arch-{arch_noeabi}/usr/include" \
+#                         " -I{ctx.ndk_dir}/sources/cxx-stl/gnu-libstdc++/{ctx.toolchain_version}/include" \
+#                         " -I{ctx.ndk_dir}/sources/cxx-stl/gnu-libstdc++/{ctx.toolchain_version}/libs/{arch.arch}/include".format(**keys)
+#          
+#         env['LDFLAGS'] += " -L{ctx.ndk_dir}/sources/cxx-stl/gnu-libstdc++/{ctx.toolchain_version}/libs/{arch.arch}" \
+#                 " -lgnustl_shared".format(**keys)
+#         
+#         return env
 
 
 class CythonRecipe(PythonRecipe):
