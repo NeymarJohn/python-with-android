@@ -28,10 +28,10 @@ Contents
 
    quickstart
    buildoptions
+   installation
    commands
    recipes
    bootstraps
-   services
    apis
    troubleshooting
    contribute
@@ -44,3 +44,4 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+

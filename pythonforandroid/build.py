@@ -838,5 +838,6 @@ def copylibs_function(soname, objs_paths, extra_link_dirs=[], env=None):
                             '\n\t'.join(needed_libs))
 
     print('Copying libraries')
+    cp = sh.cp.bake('-t', dest)
     for lib in sofiles:
-        shprint(sh.cp, lib, dest)
+        shprint(cp, lib)
