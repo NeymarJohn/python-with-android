@@ -310,8 +310,7 @@ public class PythonActivity extends SDLActivity {
     public void removeLoadingScreen() {
       runOnUiThread(new Runnable() {
         public void run() {
-          if (PythonActivity.mImageView != null && 
-        		  PythonActivity.mImageView.getParent() != null) {
+          if (PythonActivity.mImageView != null) {
             ((ViewGroup)PythonActivity.mImageView.getParent()).removeView(
             PythonActivity.mImageView);
             PythonActivity.mImageView = null;
