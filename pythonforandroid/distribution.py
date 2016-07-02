@@ -41,9 +41,9 @@ class Distribution(object):
         return str(self)
 
     @classmethod
-    def get_distribution(cls, ctx, name=None, recipes=[], 
+    def get_distribution(cls, ctx, name=None, recipes=[], allow_download=True,
                          force_build=False,
-                         extra_dist_dirs=[],
+                         allow_build=True, extra_dist_dirs=[],
                          require_perfect_match=False):
         '''Takes information about the distribution, and decides what kind of
         distribution it will be.
@@ -59,6 +59,11 @@ class Distribution(object):
             exists, it will be used.
         recipes : list
             The recipes that the distribution must contain.
+        allow_download : bool
+            Whether binary dists may be downloaded.
+        allow_build : bool
+            Whether the distribution may be built from scratch if necessary.
+            This is always False on e.g. Windows.
         force_download: bool
             If True, only downloaded dists are considered.
         force_build : bool
