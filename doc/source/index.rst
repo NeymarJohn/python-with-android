@@ -29,10 +29,10 @@ Contents
    quickstart
    buildoptions
    commands
-   distutils
    recipes
    bootstraps
    services
+   launcher
    apis
    troubleshooting
    contribute
