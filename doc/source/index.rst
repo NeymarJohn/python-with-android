@@ -29,12 +29,12 @@ Contents
    quickstart
    buildoptions
    commands
+   distutils
    recipes
    bootstraps
    services
    apis
    troubleshooting
-   launcher
    contribute
    old_toolchain/index.rst
 

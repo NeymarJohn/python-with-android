@@ -49,7 +49,7 @@ setup(name='python-for-android',
       author_email='kivy-dev@googlegroups.com',
       url='https://github.com/kivy/python-for-android', 
       license='MIT', 
-      install_requires=['appdirs', 'colorama>=0.3.3', 'sh>=1.10', 'jinja2',
+      install_requires=['appdirs', 'colorama>=0.3.3', 'sh>=1.10', 'jinja2', 'argparse',
                         'six'],
       entry_points={
           'console_scripts': [
@@ -57,7 +57,7 @@ setup(name='python-for-android',
               'p4a = pythonforandroid.toolchain:main',
               ],
           'distutils.commands': [
-              'bdist_apk = pythonforandroid.bdist_apk:BdistAPK',
+              'apk = pythonforandroid.bdist_apk:BdistAPK',
               ],
           },
       classifiers = [
