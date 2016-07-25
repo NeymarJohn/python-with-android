@@ -5,7 +5,6 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ApplicationInfo;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Process;
@@ -15,6 +14,7 @@ import android.util.Log;
 public class PythonService extends Service implements Runnable {
     private static String TAG = PythonService.class.getSimpleName();
 
+    public static PythonService mService = null;
     /**
      * Intent that started the service
      */
@@ -31,8 +31,15 @@ public class PythonService extends Service implements Runnable {
     private String serviceEntrypoint;
     private String pythonServiceArgument;
 
-    protected boolean autoRestartService = false;
-    protected boolean startForeground = true;
+    private boolean autoRestartService = false;
+
+    public void setAutoRestartService(boolean restart) {
+        autoRestartService = restart;
+    }
+
+    public boolean canDisplayNotification() {
+        return true;
+    }
 
     public int startType() {
         return START_NOT_STICKY;
@@ -81,7 +88,7 @@ public class PythonService extends Service implements Runnable {
         pythonThread = new Thread(this);
         pythonThread.start();
 
-        if (startForeground) {
+        if (canDisplayNotification()) {
             doStartForeground(extras);
         }
 
@@ -89,16 +96,14 @@ public class PythonService extends Service implements Runnable {
     }
 
     protected void doStartForeground(Bundle extras) {
-        Context appContext = getApplicationContext();
-        ApplicationInfo appInfo = appContext.getApplicationInfo();
+        String serviceTitle = extras.getString("serviceTitle");
+        String serviceDescription = extras.getString("serviceDescription");
 
-        String serviceTitle = extras.getString("serviceTitle", TAG);
-        String serviceDescription = extras.getString("serviceDescription", "");
-        int serviceIconId = extras.getInt("serviceIconId", appInfo.icon);
+        Context context = getApplicationContext();
 
         NotificationCompat.Builder builder =
                 new NotificationCompat.Builder(this)
-                        .setSmallIcon(serviceIconId)
+                        .setSmallIcon(context.getApplicationInfo().icon)
                         .setContentTitle(serviceTitle)
                         .setContentText(serviceDescription);
 
@@ -131,6 +136,7 @@ public class PythonService extends Service implements Runnable {
     @Override
     public void run() {
         PythonUtil.loadLibraries(getFilesDir());
+        mService = this;
         nativeStart(androidPrivate, androidArgument, serviceEntrypoint,
                 pythonName, pythonHome, pythonPath, pythonServiceArgument);
         stopSelf();
