@@ -48,21 +48,14 @@ public class PythonActivity extends SDLActivity {
     private Bundle mMetaData = null;
     private PowerManager.WakeLock mWakeLock = null;
 
-    public String getAppRoot() {
-        String app_root =  getFilesDir().getAbsolutePath() + "/app";
-        return app_root;
-    }
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.v(TAG, "My oncreate running");
         resourceManager = new ResourceManager(this);
         this.showLoadingScreen();
-        File app_root_file = new File(getAppRoot());
 
         Log.v(TAG, "Ready to unpack");
-        unpackData("private", app_root_file);
+        unpackData("private", getFilesDir());
 
         Log.v(TAG, "About to do super onCreate");
         super.onCreate(savedInstanceState);
@@ -70,15 +63,14 @@ public class PythonActivity extends SDLActivity {
 
         this.mActivity = this;
 
-        String app_root_dir = getAppRoot();
         String mFilesDirectory = mActivity.getFilesDir().getAbsolutePath();
         Log.v(TAG, "Setting env vars for start.c and Python to use");
         SDLActivity.nativeSetEnv("ANDROID_PRIVATE", mFilesDirectory);
-        SDLActivity.nativeSetEnv("ANDROID_ARGUMENT", app_root_dir);
-        SDLActivity.nativeSetEnv("ANDROID_APP_PATH", app_root_dir);
+        SDLActivity.nativeSetEnv("ANDROID_ARGUMENT", mFilesDirectory);
+        SDLActivity.nativeSetEnv("ANDROID_APP_PATH", mFilesDirectory);
         SDLActivity.nativeSetEnv("ANDROID_ENTRYPOINT", "main.pyo");
-        SDLActivity.nativeSetEnv("PYTHONHOME", app_root_dir);
-        SDLActivity.nativeSetEnv("PYTHONPATH", app_root_dir + ":" + app_root_dir + "/lib");
+        SDLActivity.nativeSetEnv("PYTHONHOME", mFilesDirectory);
+        SDLActivity.nativeSetEnv("PYTHONPATH", mFilesDirectory + ":" + mFilesDirectory + "/lib");
 
         try {
             Log.v(TAG, "Access to our meta-data...");
@@ -101,9 +93,7 @@ public class PythonActivity extends SDLActivity {
     }
 
     public void loadLibraries() {
-        String app_root = new String(getAppRoot());
-        File app_root_file = new File(app_root);
-        PythonUtil.loadLibraries(app_root_file);
+        PythonUtil.loadLibraries(getFilesDir());
     }
 
     public void recursiveDelete(File f) {
@@ -277,12 +267,11 @@ public class PythonActivity extends SDLActivity {
         Intent serviceIntent = new Intent(PythonActivity.mActivity, PythonService.class);
         String argument = PythonActivity.mActivity.getFilesDir().getAbsolutePath();
         String filesDirectory = argument;
-        String app_root_dir = PythonActivity.mActivity.getAppRoot();
         serviceIntent.putExtra("androidPrivate", argument);
-        serviceIntent.putExtra("androidArgument", app_root_dir);
+        serviceIntent.putExtra("androidArgument", argument);
         serviceIntent.putExtra("serviceEntrypoint", "service/main.pyo");
-        serviceIntent.putExtra("pythonHome", app_root_dir);
-        serviceIntent.putExtra("pythonPath", app_root_dir + ":" + app_root_dir + "/lib");
+        serviceIntent.putExtra("pythonHome", argument);
+        serviceIntent.putExtra("pythonPath", argument + ":" + filesDirectory + "/lib");
         serviceIntent.putExtra("serviceTitle", serviceTitle);
         serviceIntent.putExtra("serviceDescription", serviceDescription);
         serviceIntent.putExtra("pythonServiceArgument", pythonServiceArgument);
