@@ -315,8 +315,6 @@ class ToolchainCL(object):
             default=False,
             description='Copy libraries instead of using biglink (Android 4.3+)')
 
-        self._read_configuration()
-
         subparsers = parser.add_subparsers(dest='subparser_name',
                                            help='The command to run')
 
