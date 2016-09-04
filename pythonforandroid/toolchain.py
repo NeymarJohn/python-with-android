@@ -76,6 +76,7 @@ from functools import wraps
 import argparse
 import sh
 from appdirs import user_data_dir
+import logging
 
 from pythonforandroid.recipe import (Recipe, PythonRecipe, CythonRecipe,
                                      CompiledComponentsPythonRecipe,
@@ -315,6 +316,8 @@ class ToolchainCL(object):
             default=False,
             description='Copy libraries instead of using biglink (Android 4.3+)')
 
+        self._read_configuration()
+
         subparsers = parser.add_subparsers(dest='subparser_name',
                                            help='The command to run')
 
@@ -428,6 +431,9 @@ class ToolchainCL(object):
         self.args = args
 
         setup_color(args.color)
+
+        if args.debug:
+            logger.setLevel(logging.DEBUG)
 
         # strip version from requirements, and put them in environ
         if hasattr(args, 'requirements'):
