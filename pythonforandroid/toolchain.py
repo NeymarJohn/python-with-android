@@ -364,12 +364,10 @@ class ToolchainCL(object):
             parents=[generic_parser])
         parser_clean_recipe_build.add_argument('recipe', help='The recipe name')
 
-        parser_clean_download_cache= add_parser(subparsers,
-            'clean_download_cache', aliases=['clean-download-cache'],
+        parser_clear_download_cache= add_parser(subparsers,
+            'clear_download_cache', aliases=['clear-download-cache'],
             help='Delete any cached recipe downloads',
             parents=[generic_parser])
-        parser_clean_download_cache.add_argument('recipe',
-                                                 help='The recipe name')
 
         parser_export_dist = add_parser(subparsers,
             'export_dist', aliases=['export-dist'],
@@ -580,29 +578,13 @@ class ToolchainCL(object):
 
     def clean_download_cache(self, args):
         '''
-        Deletes a download cache for recipes stated as arguments. If no
-        argument is passed, it'll delete *all* downloaded cache. ::
-
-            p4a clean_download_cache kivy,pyjnius
+        Deletes any downloaded recipe packages.
 
         This does *not* delete the build caches or final distributions.
         '''
         ctx = self.ctx
-        msg = "Download cache removed!"
-        if args.recipe:
-            for package in args.recipe.split(','):
-                remove_path = join(ctx.packages_path, package)
-                if exists(remove_path):
-                    shutil.rmtree(remove_path)
-                    print(msg[:-1] + ' for: "{}"!'.format(package))
-                else:
-                    print('No download cache for "{}" found!'.format(package))
-        else:
-            if exists(ctx.packages_path):
-                shutil.rmtree(ctx.packages_path)
-                print(msg)
-            else:
-                print('Nothing found at "{}"'.format(ctx.packages_path))
+        if exists(ctx.packages_path):
+            shutil.rmtree(ctx.packages_path)
 
     @require_prebuilt_dist
     def export_dist(self, args):
