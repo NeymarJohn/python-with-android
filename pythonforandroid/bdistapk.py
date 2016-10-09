@@ -42,7 +42,11 @@ class BdistAPK(Command):
             if source == 'command line':
                 continue
             if not argv_contains('--' + option):
-                if value in (None, 'None'):
+                # allow 'permissions': ['permission', 'permission] in apk
+                if option == 'permissions':
+                    for perm in value:
+                        sys.argv.append('--permission={}'.format(perm))
+                elif value in (None, 'None'):
                     sys.argv.append('--{}'.format(option))
                 else:
                     sys.argv.append('--{}={}'.format(option, value))
@@ -80,7 +84,7 @@ class BdistAPK(Command):
 
     def prepare_build_dir(self):
 
-        if argv_contains('--private') and not argv_contains('--launcher'):
+        if argv_contains('--private'):
             print('WARNING: Received --private argument when this would '
                   'normally be generated automatically.')
             print('         This is probably bad unless you meant to do '
@@ -101,19 +105,18 @@ class BdistAPK(Command):
             filens.extend(glob(pattern))
 
         main_py_dirs = []
-        if not argv_contains('--launcher'):
-            for filen in filens:
-                new_dir = join(bdist_dir, dirname(filen))
-                if not exists(new_dir):
-                    makedirs(new_dir)
-                print('Including {}'.format(filen))
-                copyfile(filen, join(bdist_dir, filen))
-                if basename(filen) in ('main.py', 'main.pyo'):
-                    main_py_dirs.append(filen)
+        for filen in filens:
+            new_dir = join(bdist_dir, dirname(filen))
+            if not exists(new_dir):
+                makedirs(new_dir)
+            print('Including {}'.format(filen))
+            copyfile(filen, join(bdist_dir, filen))
+            if basename(filen) in ('main.py', 'main.pyo'):
+                main_py_dirs.append(filen)
 
         # This feels ridiculous, but how else to define the main.py dir?
         # Maybe should just fail?
-        if not main_py_dirs and not argv_contains('--launcher'):
+        if len(main_py_dirs) == 0:
             print('ERROR: Could not find main.py, so no app build dir defined')
             print('You should name your app entry point main.py')
             exit(1)
@@ -121,10 +124,8 @@ class BdistAPK(Command):
             print('WARNING: Multiple main.py dirs found, using the shortest path')
         main_py_dirs = sorted(main_py_dirs, key=lambda j: len(split(j)))
 
-        if not argv_contains('--launcher'):
-            sys.argv.append('--private={}'.format(
-                join(realpath(curdir), bdist_dir, dirname(main_py_dirs[0])))
-            )
+        sys.argv.append('--private={}'.format(join(realpath(curdir), bdist_dir,
+                                                   dirname(main_py_dirs[0]))))
 
 
 def _set_user_options():
