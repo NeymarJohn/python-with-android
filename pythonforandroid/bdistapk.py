@@ -42,11 +42,7 @@ class BdistAPK(Command):
             if source == 'command line':
                 continue
             if not argv_contains('--' + option):
-                # allow 'permissions': ['permission', 'permission] in apk
-                if option == 'permissions':
-                    for perm in value:
-                        sys.argv.append('--permission={}'.format(perm))
-                elif value in (None, 'None'):
+                if value in (None, 'None'):
                     sys.argv.append('--{}'.format(option))
                 else:
                     sys.argv.append('--{}={}'.format(option, value))
