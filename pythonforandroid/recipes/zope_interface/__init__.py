@@ -1,9 +1,9 @@
-from pythonforandroid.toolchain import PythonRecipe, current_directory
+from pythonforandroid.toolchain import PythonRecipe, shprint, current_directory
+from os.path import join
 import sh
 
 
 class ZopeInterfaceRecipe(PythonRecipe):
-    call_hostpython_via_targetpython = False
     name = 'zope_interface'
     version = '4.1.3'
     url = 'https://pypi.python.org/packages/source/z/zope.interface/zope.interface-{version}.tar.gz'
