@@ -412,17 +412,12 @@ tools directory of the Android SDK.
                     required=True)
     ap.add_argument('--orientation', dest='orientation', default='portrait',
                     help=('The orientation that the game will display in. '
-                          'Usually one of "landscape", "portrait", '
-                          '"sensor", or "user" (the same as "sensor" but '
-                          'obeying the user\'s Android rotation setting). '
-                          'The full list of options is given under '
-                          'android_screenOrientation at '
-                          'https://developer.android.com/guide/topics/manifest/'
-                          'activity-element.html'))
+                          'Usually one of "landscape", "portrait" or '
+                          '"sensor"'))
     ap.add_argument('--icon', dest='icon',
                     help='A png file to use as the icon for the application.')
     ap.add_argument('--permission', dest='permissions', action='append',
-                    help='The permissions to give this app.', nargs='+')
+                    help='The permissions to give this app.')
     ap.add_argument('--meta-data', dest='meta_data', action='append',
                     help='Custom key=value to add in application metadata')
     ap.add_argument('--presplash', dest='presplash',
@@ -430,7 +425,7 @@ tools directory of the Android SDK.
                           'application is loading.'))
     ap.add_argument('--presplash-color', dest='presplash_color', default='#000000',
                     help=('A string to set the loading screen background color. '
-                          'Supported formats are: #RRGGBB #AARRGGBB or color names '
+                          'Suported formats are: #RRGGBB #AARRGGBB or color names '
                           'like red, green, blue, etc.'))
     ap.add_argument('--wakelock', dest='wakelock', action='store_true',
                     help=('Indicate if the application needs the device '
@@ -493,9 +488,6 @@ tools directory of the Android SDK.
 
     if args.permissions is None:
         args.permissions = []
-    elif args.permissions:
-        if isinstance(args.permissions[0], list):
-            args.permissions = [p for perm in args.permissions for p in perm]
 
     if args.meta_data is None:
         args.meta_data = []

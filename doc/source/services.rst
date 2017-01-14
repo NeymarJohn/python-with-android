@@ -39,10 +39,8 @@ you wish to use this method)::
                           description='service description',
                           arg='argument to service')
 
-.. _arbitrary_scripts_services:
-
-Arbitrary service scripts
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Arbitrary scripts
+~~~~~~~~~~~~~~~~~
 
 .. note:: This service method is *not supported* by the Pygame bootstrap.
 

@@ -582,10 +582,6 @@ class Recipe(with_metaclass(RecipeMeta)):
                 info('Deleting {}'.format(directory))
                 shutil.rmtree(directory)
 
-        # Delete any Python distributions to ensure the recipe build
-        # doesn't persist in site-packages
-        shutil.rmtree(self.ctx.python_installs_dir)
-
     def install_libs(self, arch, *libs):
         libs_dir = self.ctx.get_libs_dir(arch.arch)
         if not libs:
@@ -778,9 +774,6 @@ class PythonRecipe(Recipe):
 
     def get_recipe_env(self, arch=None, with_flags_in_cc=True):
         env = super(PythonRecipe, self).get_recipe_env(arch, with_flags_in_cc)
-
-        env['PYTHONNOUSERSITE'] = '1'
-
         if not self.call_hostpython_via_targetpython:
             hppath = []
             hppath.append(join(dirname(self.hostpython_location), 'Lib'))
