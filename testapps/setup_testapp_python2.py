@@ -6,10 +6,9 @@ options = {'apk': {'debug': None,
                    'requirements': 'sdl2,pyjnius,kivy,python2',
                    'android-api': 19,
                    'ndk-dir': '/home/asandy/android/crystax-ndk-10.3.2',
-                   'dist-name': 'bdisttest_python2',
+                   'dist-name': 'bdisttest',
                    'ndk-version': '10.3.2',
                    'permission': 'VIBRATE',
-                   'window': None,
                    }}
 
 package_data = {'': ['*.py',

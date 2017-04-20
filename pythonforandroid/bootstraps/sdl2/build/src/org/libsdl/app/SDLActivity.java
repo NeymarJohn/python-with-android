@@ -122,11 +122,7 @@ public class SDLActivity extends Activity {
         SDLActivity.initialize();
         // So we can call stuff from static callbacks
         mSingleton = this;
-    }
 
-    // We don't do this in onCreate because we unpack and load the app data on a thread
-    // and we can't run setup tasks until that thread completes.
-    protected void finishLoad() {
         // Load shared libraries
         String errorMsgBrokenLib = "";
         try {
@@ -262,9 +258,6 @@ public class SDLActivity extends Activity {
         super.onDestroy();
         // Reset everything in case the user re opens the app
         SDLActivity.initialize();
-
-        // Completely closes application.
-        System.exit(0);
     }
 
     @Override
