@@ -183,8 +183,7 @@ public class PythonActivity extends SDLActivity {
 
                 PowerManager pm = (PowerManager) mActivity.getSystemService(Context.POWER_SERVICE);
                 if ( mActivity.mMetaData.getInt("wakelock") == 1 ) {
-                	mActivity.mWakeLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, "Screen On");
-                	mActivity.mWakeLock.acquire();
+                    mActivity.mWakeLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, "Screen On");
                 }
                 if ( mActivity.mMetaData.getInt("surface.transparent") != 0 ) {
                     Log.v(TAG, "Surface will be transparent.");
@@ -453,27 +452,5 @@ public class PythonActivity extends SDLActivity {
     }
 
     }
-    
-    @Override
-    protected void onPause() {
-    	// fooabc
-        if ( this.mWakeLock != null &&  mWakeLock.isHeld()){
-        	this.mWakeLock.release();
-        }
-
-        Log.v(TAG, "onPause()");
-        super.onPause();
-    }
-
-    @Override
-    protected void onResume() {
-    	if ( this.mWakeLock != null){
-    		this.mWakeLock.acquire(); 
-    	}
-	    Log.v(TAG, "onResume()");
-	    super.onResume();
-    }
-
-    
 
 }
