@@ -61,15 +61,13 @@ p4a has several dependencies that must be installed:
 - unzip
 - virtualenv (can be installed via pip)
 - ccache (optional)
-- autoconf (for ffpyplayer_codecs recipe)
-- libtool (for ffpyplayer_codecs recipe)
 
 On recent versions of Ubuntu and its derivatives you may be able to
 install most of these with::
 
     sudo dpkg --add-architecture i386
     sudo apt-get update
-    sudo apt-get install -y build-essential ccache git zlib1g-dev python2.7 python2.7-dev libncurses5:i386 libstdc++6:i386 zlib1g:i386 openjdk-7-jdk unzip ant ccache autoconf libtool
+    sudo apt-get install -y build-essential git zlib1g-dev python2.7 python2.7-dev libncurses5:i386 libstdc++6:i386 zlib1g:i386 openjdk-7-jdk unzip ant ccache
 
 On Arch Linux (64 bit) you should be able to run the following to
 install most of the dependencies (note: this list may not be
@@ -130,13 +128,13 @@ well as the requirements::
 
 You can also replace flask with another web framework.
 
-Replace ``--port=5000`` with the port your app will serve a website
-on. The default for Flask is 5000.
+Replace ``--port=5000`` with the port on which your app will serve a
+website. The default for Flask is 5000.
 
 Build an SDL2 based application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This includes `Vispy <http://vispy.org/>`__ and `PySDL2
+This includes e.g. `PySDL2
 <https://pysdl2.readthedocs.io/en/latest/>`__.
 
 To build your application, you need to have a name, version, a package
@@ -147,6 +145,14 @@ requirements::
 
 Add your required modules in place of ``your_requirements``,
 e.g. ``--requirements=pysdl2`` or ``--requirements=vispy``.
+
+Other options
+~~~~~~~~~~~~~
+
+You can pass other command line arguments to control app behaviours
+such as orientation, wakelock and app permissions. See
+:ref:`bootstrap_build_options`.
+
     
 
 Rebuild everything
