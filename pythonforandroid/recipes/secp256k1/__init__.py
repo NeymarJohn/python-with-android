@@ -1,8 +1,8 @@
 from os.path import join
-from pythonforandroid.recipe import PythonRecipe
+from pythonforandroid.recipe import CompiledComponentsPythonRecipe
 
 
-class Secp256k1Recipe(PythonRecipe):
+class Secp256k1Recipe(CompiledComponentsPythonRecipe):
 
     url = 'https://github.com/ludbb/secp256k1-py/archive/master.zip'
 
@@ -10,11 +10,9 @@ class Secp256k1Recipe(PythonRecipe):
 
     depends = [
         'openssl', 'hostpython2', 'python2', 'setuptools',
-        'libffi', 'cffi', 'libffi', 'libsecp256k1']
+        'libffi', 'cffi', 'libsecp256k1']
 
-    patches = [
-        "cross_compile.patch", "drop_setup_requires.patch",
-        "pkg-config.patch", "find_lib.patch", "no-download.patch"]
+    patches = ["cross_compile.patch", "pkg-config.patch", "find_lib.patch"]
 
     def get_recipe_env(self, arch=None):
         env = super(Secp256k1Recipe, self).get_recipe_env(arch)
