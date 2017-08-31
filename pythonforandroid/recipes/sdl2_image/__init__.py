@@ -9,7 +9,6 @@ class LibSDL2Image(BootstrapNDKRecipe):
 
     patches = ['toggle_jpg_png_webp.patch',
                ('disable_jpg.patch', is_arch('x86')),
-               'extra_cflags.patch',
-               'add_ndk_platform_include_dir.patch']
+               'extra_cflags.patch']
 
 recipe = LibSDL2Image()

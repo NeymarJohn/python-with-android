@@ -34,7 +34,7 @@ while i < len(sys.argv):
         i += 1
         continue
 
-    if opt.startswith("-I") or opt.startswith('-isystem'):
+    if opt.startswith("-I"):
         continue
 
     if opt.startswith("-m"):

@@ -666,16 +666,12 @@ def biglink(ctx, arch):
     info('target {}'.format(join(ctx.get_libs_dir(arch.arch),
                                  'libpymodules.so')))
     do_biglink = copylibs_function if ctx.copy_libs else biglink_function
-
-    # Move to the directory containing crtstart_so.o and crtend_so.o
-    # This is necessary with newer NDKs? A gcc bug?
-    with current_directory(join(ctx.ndk_platform, 'usr', 'lib')):
-        do_biglink(
-            join(ctx.get_libs_dir(arch.arch), 'libpymodules.so'),
-            obj_dir.split(' '),
-            extra_link_dirs=[join(ctx.bootstrap.build_dir,
-                                'obj', 'local', arch.arch)],
-            env=env)
+    do_biglink(
+        join(ctx.get_libs_dir(arch.arch), 'libpymodules.so'),
+        obj_dir.split(' '),
+        extra_link_dirs=[join(ctx.bootstrap.build_dir,
+                              'obj', 'local', arch.arch)],
+        env=env)
 
 
 def biglink_function(soname, objs_paths, extra_link_dirs=[], env=None):
