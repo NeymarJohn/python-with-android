@@ -47,8 +47,6 @@ class Context(object):
 
     symlink_java_src = False # If True, will symlink instead of copying during build
 
-    java_build_tool = 'auto'
-
     @property
     def packages_path(self):
         '''Where packages are downloaded before being unpacked'''
