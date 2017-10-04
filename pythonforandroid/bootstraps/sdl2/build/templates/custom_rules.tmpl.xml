@@ -3,9 +3,9 @@
     <target name="-pre-build">
         <copy todir="tmp-src">
             {% if args.launcher %}
-            <fileset dir="src/main/java" includes="**" />
+            <fileset dir="src" includes="**" />
             {% else %}
-            <fileset dir="src/main/java">
+            <fileset dir="src">
                 <exclude name="org/kivy/android/ProjectAdapter.java" />
                 <exclude name="org/kivy/android/ProjectChooser.java" />
             </fileset>

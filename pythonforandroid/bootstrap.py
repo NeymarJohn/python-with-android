@@ -6,7 +6,7 @@ import json
 import importlib
 
 from pythonforandroid.logger import (warning, shprint, info, logger,
-                                     debug, error)
+                                     debug)
 from pythonforandroid.util import (current_directory, ensure_dir,
                                    temp_directory, which)
 from pythonforandroid.recipe import Recipe
@@ -195,21 +195,20 @@ class Bootstrap(object):
         bootstrap.ctx = ctx
         return bootstrap
 
-    def distribute_libs(self, arch, src_dirs, wildcard='*', dest_dir="libs"):
+    def distribute_libs(self, arch, src_dirs, wildcard='*'):
         '''Copy existing arch libs from build dirs to current dist dir.'''
         info('Copying libs')
-        tgt_dir = join(dest_dir, arch.arch)
+        tgt_dir = join('libs', arch.arch)
         ensure_dir(tgt_dir)
         for src_dir in src_dirs:
             for lib in glob.glob(join(src_dir, wildcard)):
                 shprint(sh.cp, '-a', lib, tgt_dir)
 
-    def distribute_javaclasses(self, javaclass_dir, dest_dir="src"):
+    def distribute_javaclasses(self, javaclass_dir):
         '''Copy existing javaclasses from build dir to current dist dir.'''
         info('Copying java files')
-        ensure_dir(dest_dir)
         for filename in glob.glob(javaclass_dir):
-            shprint(sh.cp, '-a', filename, dest_dir)
+            shprint(sh.cp, '-a', filename, 'src')
 
     def distribute_aars(self, arch):
         '''Process existing .aar bundles and copy to current dist dir.'''
