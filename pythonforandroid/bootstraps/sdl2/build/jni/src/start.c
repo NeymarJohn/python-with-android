@@ -84,11 +84,6 @@ int main(int argc, char *argv[]) {
   setenv("ANDROID_APP_PATH", env_argument, 1);
   env_entrypoint = getenv("ANDROID_ENTRYPOINT");
   env_logname = getenv("PYTHON_NAME");
-
-  if (!getenv("ANDROID_UNPACK")) {
-    /* ANDROID_UNPACK currently isn't set in services */
-    setenv("ANDROID_UNPACK", env_argument, 1);
-  }
   
   if (env_logname == NULL) {
     env_logname = "python";
@@ -109,15 +104,12 @@ int main(int argc, char *argv[]) {
 
   LOGP("Preparing to initialize python");
 
-  char crystax_python_dir[256];
-  snprintf(crystax_python_dir, 256,
-           "%s/crystax_python", getenv("ANDROID_UNPACK"));
-  if (dir_exists(crystax_python_dir)) {
+  if (dir_exists("crystax_python/")) {
     LOGP("crystax_python exists");
     char paths[256];
     snprintf(paths, 256,
-             "%s/stdlib.zip:%s/modules",
-             crystax_python_dir, crystax_python_dir);
+             "%s/crystax_python/stdlib.zip:%s/crystax_python/modules",
+             env_argument, env_argument);
     /* snprintf(paths, 256, "%s/stdlib.zip:%s/modules", env_argument,
      * env_argument); */
     LOGP("calculated paths to be...");
@@ -174,11 +166,11 @@ int main(int argc, char *argv[]) {
                        "    argument ]\n");
   }
 
-  if (dir_exists(crystax_python_dir)) {
+  if (dir_exists("crystax_python")) {
     char add_site_packages_dir[256];
     snprintf(add_site_packages_dir, 256,
-             "sys.path.append('%s/site-packages')",
-             crystax_python_dir);
+             "sys.path.append('%s/crystax_python/site-packages')",
+             env_argument);
 
     PyRun_SimpleString("import sys\n"
                        "sys.argv = ['notaninterpreterreally']\n"

@@ -6,7 +6,6 @@ from shutil import rmtree
 from six import PY2, with_metaclass
 
 import hashlib
-from re import match
 
 import sh
 import shutil
@@ -150,7 +149,7 @@ class Recipe(with_metaclass(RecipeMeta)):
 
             urlretrieve(url, target, report_hook)
             return target
-        elif parsed_url.scheme in ('git', 'git+file', 'git+ssh', 'git+http', 'git+https'):
+        elif parsed_url.scheme in ('git', 'git+ssh', 'git+http', 'git+https'):
             if isdir(target):
                 with current_directory(target):
                     shprint(sh.git, 'fetch', '--tags')
@@ -226,19 +225,19 @@ class Recipe(with_metaclass(RecipeMeta)):
         build directory.
         """
         info("Applying patch {}".format(filename))
-        filename = join(self.recipe_dir, filename)
+        filename = join(self.get_recipe_dir(), filename)
         shprint(sh.patch, "-t", "-d", self.get_build_dir(arch), "-p1",
                 "-i", filename, _tail=10)
 
     def copy_file(self, filename, dest):
         info("Copy {} to {}".format(filename, dest))
-        filename = join(self.recipe_dir, filename)
+        filename = join(self.get_recipe_dir(), filename)
         dest = join(self.build_dir, dest)
         shutil.copy(filename, dest)
 
     def append_file(self, filename, dest):
         info("Append {} to {}".format(filename, dest))
-        filename = join(self.recipe_dir, filename)
+        filename = join(self.get_recipe_dir(), filename)
         dest = join(self.build_dir, dest)
         with open(filename, "rb") as fd:
             data = fd.read()
@@ -350,14 +349,6 @@ class Recipe(with_metaclass(RecipeMeta)):
             return
 
         url = self.versioned_url
-        ma = match(u'^(.+)#md5=([0-9a-f]{32})$', url)
-        if ma:                  # fragmented URL?
-            if self.md5sum:
-                raise Exception('Recipe md5sum via fragmented URL only!')
-            url = ma.group(1)
-            expected_md5 = ma.group(2)
-        else:
-            expected_md5 = self.md5sum
 
         shprint(sh.mkdir, '-p', join(self.ctx.packages_path, self.name))
 
@@ -365,37 +356,44 @@ class Recipe(with_metaclass(RecipeMeta)):
             filename = shprint(sh.basename, url).stdout[:-1].decode('utf-8')
 
             do_download = True
+
             marker_filename = '.mark-{}'.format(filename)
             if exists(filename) and isfile(filename):
                 if not exists(marker_filename):
                     shprint(sh.rm, filename)
-                elif expected_md5:
+                elif self.md5sum:
                     current_md5 = md5sum(filename)
-                    if current_md5 != expected_md5:
+                    if current_md5 == self.md5sum:
+                        debug('Checked md5sum: downloaded expected content!')
+                        do_download = False
+                    else:
+                        info('Downloaded unexpected content...')
                         debug('* Generated md5sum: {}'.format(current_md5))
-                        debug('* Expected md5sum: {}'.format(expected_md5))
-                        raise Exception('Cached unexpected content!')
-                    do_download = False
+                        debug('* Expected md5sum: {}'.format(self.md5sum))
+
                 else:
                     do_download = False
+                    info('{} download already cached, skipping'
+                         .format(self.name))
 
             # If we got this far, we will download
             if do_download:
                 debug('Downloading {} from {}'.format(self.name, url))
 
                 shprint(sh.rm, '-f', marker_filename)
-                self.download_file(self.versioned_url, filename)
+                self.download_file(url, filename)
                 shprint(sh.touch, marker_filename)
 
-                if exists(filename) and isfile(filename) and expected_md5:
+                if exists(filename) and isfile(filename) and self.md5sum:
                     current_md5 = md5sum(filename)
-                    if expected_md5 is not None:
-                        if current_md5 != expected_md5:
+                    if self.md5sum is not None:
+                        if current_md5 == self.md5sum:
+                            debug('Checked md5sum: downloaded expected content!')
+                        else:
+                            info('Downloaded unexpected content...')
                             debug('* Generated md5sum: {}'.format(current_md5))
-                            debug('* Expected md5sum: {}'.format(expected_md5))
-                            raise Exception('Downloaded unexpected content!')
-            else:
-                info('{} download already cached, skipping'.format(self.name))
+                            debug('* Expected md5sum: {}'.format(self.md5sum))
+                            exit(1)
 
     def unpack(self, arch):
         info_main('Unpacking {} for {}'.format(self.name, arch))
@@ -423,9 +421,6 @@ class Recipe(with_metaclass(RecipeMeta)):
 
         filename = shprint(
             sh.basename, self.versioned_url).stdout[:-1].decode('utf-8')
-        ma = match(u'^(.+)#md5=([0-9a-f]{32})$', filename)
-        if ma:                  # fragmented URL?
-            filename = ma.group(1)
 
         with current_directory(build_dir):
             directory_name = self.get_build_dir(arch)
@@ -643,7 +638,6 @@ class Recipe(with_metaclass(RecipeMeta)):
         if len(logger.handlers) > 1:
             logger.removeHandler(logger.handlers[1])
         recipe = mod.recipe
-        recipe.recipe_dir = dirname(recipe_file)
         recipe.ctx = ctx
         cls.recipes[name] = recipe
         return recipe
