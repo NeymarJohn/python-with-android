@@ -237,7 +237,8 @@ main.py that loads it.''')
     # construct a python27.zip
     make_python_zip()
 
-    # Package up the private data (public not supported).
+    # Package up the private and public data.
+    # AND: Just private for now
     tar_dirs = [args.private]
     if exists('private'):
         tar_dirs.append('private')

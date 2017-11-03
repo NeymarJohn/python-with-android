@@ -279,6 +279,8 @@ class ToolchainCL(object):
             help=('Primary storage directory for downloads and builds '
                   '(default: {})'.format(default_storage_dir)))
 
+        # AND: This option doesn't really fit in the other categories, the
+        # arg structure needs a rethink
         generic_parser.add_argument(
             '--arch',
             help='The archs to build for, separated by commas.',
@@ -310,6 +312,11 @@ class ToolchainCL(object):
             generic_parser, ["force-build"],
             default=False,
             description='Whether to force compilation of a new distribution:')
+
+        generic_parser.add_argument(
+            '--extra-dist-dirs', '--extra_dist_dirs',
+            dest='extra_dist_dirs', default='',
+            help='Directories in which to look for distributions')
 
         add_boolean_option(
             generic_parser, ["require-perfect-match"],
@@ -505,6 +512,12 @@ class ToolchainCL(object):
         self.ctx.java_build_tool = args.java_build_tool
 
         self._archs = split_argument_list(args.arch)
+
+        # AND: Fail nicely if the args aren't handled yet
+        if args.extra_dist_dirs:
+            warning('Received --extra_dist_dirs but this arg currently is not '
+                    'handled, exiting.')
+            exit(1)
 
         self.ctx.local_recipes = args.local_recipes
         self.ctx.copy_libs = args.copy_libs

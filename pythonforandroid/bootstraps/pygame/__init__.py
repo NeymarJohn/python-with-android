@@ -46,6 +46,7 @@ class PygameBootstrap(Bootstrap):
 
             info('Copying python distribution')
             hostpython = sh.Command(self.ctx.hostpython)
+            # AND: This *doesn't* need to be in arm env?
             try:
                 shprint(hostpython, '-OO', '-m', 'compileall', self.ctx.get_python_install_dir(),
                         _tail=10, _filterout="^Listing")
@@ -63,6 +64,7 @@ class PygameBootstrap(Bootstrap):
                 shprint(sh.cp, '-a', join('python-install', 'lib'), 'private')
             shprint(sh.mkdir, '-p', join('private', 'include', 'python2.7'))
 
+            # AND: Copylibs stuff should go here
             shprint(sh.mv, join('libs', arch.arch, 'libpymodules.so'), 'private/')
             shprint(sh.cp, join('python-install', 'include' , 'python2.7', 'pyconfig.h'), join('private', 'include', 'python2.7/'))
 
