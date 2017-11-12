@@ -6,7 +6,6 @@ from shutil import rmtree
 from six import PY2, with_metaclass
 
 import hashlib
-from re import match
 
 import sh
 import shutil
@@ -150,7 +149,7 @@ class Recipe(with_metaclass(RecipeMeta)):
 
             urlretrieve(url, target, report_hook)
             return target
-        elif parsed_url.scheme in ('git', 'git+file', 'git+ssh', 'git+http', 'git+https'):
+        elif parsed_url.scheme in ('git', 'git+ssh', 'git+http', 'git+https'):
             if isdir(target):
                 with current_directory(target):
                     shprint(sh.git, 'fetch', '--tags')
@@ -226,19 +225,19 @@ class Recipe(with_metaclass(RecipeMeta)):
         build directory.
         """
         info("Applying patch {}".format(filename))
-        filename = join(self.recipe_dir, filename)
+        filename = join(self.get_recipe_dir(), filename)
         shprint(sh.patch, "-t", "-d", self.get_build_dir(arch), "-p1",
                 "-i", filename, _tail=10)
 
     def copy_file(self, filename, dest):
         info("Copy {} to {}".format(filename, dest))
-        filename = join(self.recipe_dir, filename)
+        filename = join(self.get_recipe_dir(), filename)
         dest = join(self.build_dir, dest)
         shutil.copy(filename, dest)
 
     def append_file(self, filename, dest):
         info("Append {} to {}".format(filename, dest))
-        filename = join(self.recipe_dir, filename)
+        filename = join(self.get_recipe_dir(), filename)
         dest = join(self.build_dir, dest)
         with open(filename, "rb") as fd:
             data = fd.read()
@@ -330,7 +329,6 @@ class Recipe(with_metaclass(RecipeMeta)):
         return join(self.get_build_container_dir(arch), self.name)
 
     def get_recipe_dir(self):
-        # AND: Redundant, an equivalent property is already set by get_recipe
         return join(self.ctx.root_dir, 'recipes', self.name)
 
     # Public Recipe API to be subclassed if needed
@@ -350,16 +348,6 @@ class Recipe(with_metaclass(RecipeMeta)):
             return
 
         url = self.versioned_url
-        ma = match(u'^(.+)#md5=([0-9a-f]{32})$', url)
-        if ma:                  # fragmented URL?
-            if self.md5sum:
-                raise ValueError(
-                    ('Received md5sum from both the {} recipe '
-                     'and its url').format(self.name))
-            url = ma.group(1)
-            expected_md5 = ma.group(2)
-        else:
-            expected_md5 = self.md5sum
 
         shprint(sh.mkdir, '-p', join(self.ctx.packages_path, self.name))
 
@@ -367,41 +355,44 @@ class Recipe(with_metaclass(RecipeMeta)):
             filename = shprint(sh.basename, url).stdout[:-1].decode('utf-8')
 
             do_download = True
+
             marker_filename = '.mark-{}'.format(filename)
             if exists(filename) and isfile(filename):
                 if not exists(marker_filename):
                     shprint(sh.rm, filename)
-                elif expected_md5:
+                elif self.md5sum:
                     current_md5 = md5sum(filename)
-                    if current_md5 != expected_md5:
+                    if current_md5 == self.md5sum:
+                        debug('Checked md5sum: downloaded expected content!')
+                        do_download = False
+                    else:
+                        info('Downloaded unexpected content...')
                         debug('* Generated md5sum: {}'.format(current_md5))
-                        debug('* Expected md5sum: {}'.format(expected_md5))
-                        raise ValueError(
-                            ('Generated md5sum does not match expected md5sum '
-                             'for {} recipe').format(self.name))
-                    do_download = False
+                        debug('* Expected md5sum: {}'.format(self.md5sum))
+
                 else:
                     do_download = False
+                    info('{} download already cached, skipping'
+                         .format(self.name))
 
             # If we got this far, we will download
             if do_download:
                 debug('Downloading {} from {}'.format(self.name, url))
 
                 shprint(sh.rm, '-f', marker_filename)
-                self.download_file(self.versioned_url, filename)
+                self.download_file(url, filename)
                 shprint(sh.touch, marker_filename)
 
-                if exists(filename) and isfile(filename) and expected_md5:
+                if exists(filename) and isfile(filename) and self.md5sum:
                     current_md5 = md5sum(filename)
-                    if expected_md5 is not None:
-                        if current_md5 != expected_md5:
+                    if self.md5sum is not None:
+                        if current_md5 == self.md5sum:
+                            debug('Checked md5sum: downloaded expected content!')
+                        else:
+                            info('Downloaded unexpected content...')
                             debug('* Generated md5sum: {}'.format(current_md5))
-                            debug('* Expected md5sum: {}'.format(expected_md5))
-                            raise ValueError(
-                                ('Generated md5sum does not match expected md5sum '
-                                'for {} recipe').format(self.name))
-            else:
-                info('{} download already cached, skipping'.format(self.name))
+                            debug('* Expected md5sum: {}'.format(self.md5sum))
+                            exit(1)
 
     def unpack(self, arch):
         info_main('Unpacking {} for {}'.format(self.name, arch))
@@ -412,8 +403,6 @@ class Recipe(with_metaclass(RecipeMeta)):
         if user_dir is not None:
             info('P4A_{}_DIR exists, symlinking instead'.format(
                 self.name.lower()))
-            # AND: Currently there's something wrong if I use ln, fix this
-            warning('Using cp -a instead of symlink...fix this!')
             if exists(self.get_build_dir(arch)):
                 return
             shprint(sh.rm, '-rf', build_dir)
@@ -429,14 +418,10 @@ class Recipe(with_metaclass(RecipeMeta)):
 
         filename = shprint(
             sh.basename, self.versioned_url).stdout[:-1].decode('utf-8')
-        ma = match(u'^(.+)#md5=([0-9a-f]{32})$', filename)
-        if ma:                  # fragmented URL?
-            filename = ma.group(1)
 
         with current_directory(build_dir):
             directory_name = self.get_build_dir(arch)
 
-            # AND: Could use tito's get_archive_rootdir here
             if not exists(directory_name) or not isdir(directory_name):
                 extraction_filename = join(
                     self.ctx.packages_path, self.name, filename)
@@ -649,7 +634,6 @@ class Recipe(with_metaclass(RecipeMeta)):
         if len(logger.handlers) > 1:
             logger.removeHandler(logger.handlers[1])
         recipe = mod.recipe
-        recipe.recipe_dir = dirname(recipe_file)
         recipe.ctx = ctx
         cls.recipes[name] = recipe
         return recipe
@@ -832,26 +816,11 @@ class PythonRecipe(Recipe):
 
 
             if self.ctx.python_recipe.from_crystax:
-                # hppath = join(dirname(self.hostpython_location), 'Lib',
-                #               'site-packages')
                 hpenv = env.copy()
-                # if 'PYTHONPATH' in hpenv:
-                #     hpenv['PYTHONPATH'] = ':'.join([hppath] +
-                #                                    hpenv['PYTHONPATH'].split(':'))
-                # else:
-                #     hpenv['PYTHONPATH'] = hppath
-                # hpenv['PYTHONHOME'] = self.ctx.get_python_install_dir()
-                # shprint(hostpython, 'setup.py', 'build',
-                #         _env=hpenv, *self.setup_extra_args)
                 shprint(hostpython, 'setup.py', 'install', '-O2',
                         '--root={}'.format(self.ctx.get_python_install_dir()),
                         '--install-lib=.',
-                        # AND: will need to unhardcode the 3.5 when adding 2.7 (and other crystax supported versions)
                         _env=hpenv, *self.setup_extra_args)
-                # site_packages_dir = self.ctx.get_site_packages_dir()
-                # built_files = glob.glob(join('build', 'lib*', '*'))
-                # for filen in built_files:
-                #     shprint(sh.cp, '-r', filen, join(site_packages_dir, split(filen)[-1]))
             elif self.call_hostpython_via_targetpython:
                 shprint(hostpython, 'setup.py', 'install', '-O2', _env=env,
                         *self.setup_extra_args)
@@ -868,7 +837,6 @@ class PythonRecipe(Recipe):
                         '--root={}'.format(self.ctx.get_python_install_dir()),
                         '--install-lib=lib/python2.7/site-packages',
                         _env=hpenv, *self.setup_extra_args)
-                # AND: Hardcoded python2.7 needs fixing
 
             # If asked, also install in the hostpython build dir
             if self.install_in_hostpython:
