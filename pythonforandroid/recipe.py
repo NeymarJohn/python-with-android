@@ -6,6 +6,7 @@ from shutil import rmtree
 from six import PY2, with_metaclass
 
 import hashlib
+from re import match
 
 import sh
 import shutil
@@ -149,7 +150,7 @@ class Recipe(with_metaclass(RecipeMeta)):
 
             urlretrieve(url, target, report_hook)
             return target
-        elif parsed_url.scheme in ('git', 'git+ssh', 'git+http', 'git+https'):
+        elif parsed_url.scheme in ('git', 'git+file', 'git+ssh', 'git+http', 'git+https'):
             if isdir(target):
                 with current_directory(target):
                     shprint(sh.git, 'fetch', '--tags')
@@ -167,43 +168,6 @@ class Recipe(with_metaclass(RecipeMeta)):
                         shprint(sh.git, 'checkout', self.version)
                         shprint(sh.git, 'submodule', 'update', '--recursive')
             return target
-
-    def extract_source(self, source, cwd):
-        """
-        (internal) Extract the `source` into the directory `cwd`.
-        """
-        if not source:
-            return
-        if isfile(source):
-            info("Extract {} into {}".format(source, cwd))
-
-            if source.endswith(".tgz") or source.endswith(".tar.gz"):
-                shprint(sh.tar, "-C", cwd, "-xvzf", source)
-
-            elif source.endswith(".tbz2") or source.endswith(".tar.bz2"):
-                shprint(sh.tar, "-C", cwd, "-xvjf", source)
-
-            elif source.endswith(".zip"):
-                zf = zipfile.ZipFile(source)
-                zf.extractall(path=cwd)
-                zf.close()
-
-            else:
-                warning(
-                    "Error: cannot extract, unrecognized extension for {}"
-                    .format(source))
-                raise Exception()
-
-        elif isdir(source):
-            info("Copying {} into {}".format(source, cwd))
-
-            shprint(sh.cp, '-a', source, cwd)
-
-        else:
-            warning(
-                "Error: cannot extract or copy, unrecognized path {}"
-                .format(source))
-            raise Exception()
 
     # def get_archive_rootdir(self, filename):
     #     if filename.endswith(".tgz") or filename.endswith(".tar.gz") or \
@@ -348,6 +312,16 @@ class Recipe(with_metaclass(RecipeMeta)):
             return
 
         url = self.versioned_url
+        ma = match(u'^(.+)#md5=([0-9a-f]{32})$', url)
+        if ma:                  # fragmented URL?
+            if self.md5sum:
+                raise ValueError(
+                    ('Received md5sum from both the {} recipe '
+                     'and its url').format(self.name))
+            url = ma.group(1)
+            expected_md5 = ma.group(2)
+        else:
+            expected_md5 = self.md5sum
 
         shprint(sh.mkdir, '-p', join(self.ctx.packages_path, self.name))
 
@@ -355,44 +329,41 @@ class Recipe(with_metaclass(RecipeMeta)):
             filename = shprint(sh.basename, url).stdout[:-1].decode('utf-8')
 
             do_download = True
-
             marker_filename = '.mark-{}'.format(filename)
             if exists(filename) and isfile(filename):
                 if not exists(marker_filename):
                     shprint(sh.rm, filename)
-                elif self.md5sum:
+                elif expected_md5:
                     current_md5 = md5sum(filename)
-                    if current_md5 == self.md5sum:
-                        debug('Checked md5sum: downloaded expected content!')
-                        do_download = False
-                    else:
-                        info('Downloaded unexpected content...')
+                    if current_md5 != expected_md5:
                         debug('* Generated md5sum: {}'.format(current_md5))
-                        debug('* Expected md5sum: {}'.format(self.md5sum))
-
+                        debug('* Expected md5sum: {}'.format(expected_md5))
+                        raise ValueError(
+                            ('Generated md5sum does not match expected md5sum '
+                             'for {} recipe').format(self.name))
+                    do_download = False
                 else:
                     do_download = False
-                    info('{} download already cached, skipping'
-                         .format(self.name))
 
             # If we got this far, we will download
             if do_download:
                 debug('Downloading {} from {}'.format(self.name, url))
 
                 shprint(sh.rm, '-f', marker_filename)
-                self.download_file(url, filename)
+                self.download_file(self.versioned_url, filename)
                 shprint(sh.touch, marker_filename)
 
-                if exists(filename) and isfile(filename) and self.md5sum:
+                if exists(filename) and isfile(filename) and expected_md5:
                     current_md5 = md5sum(filename)
-                    if self.md5sum is not None:
-                        if current_md5 == self.md5sum:
-                            debug('Checked md5sum: downloaded expected content!')
-                        else:
-                            info('Downloaded unexpected content...')
+                    if expected_md5 is not None:
+                        if current_md5 != expected_md5:
                             debug('* Generated md5sum: {}'.format(current_md5))
-                            debug('* Expected md5sum: {}'.format(self.md5sum))
-                            exit(1)
+                            debug('* Expected md5sum: {}'.format(expected_md5))
+                            raise ValueError(
+                                ('Generated md5sum does not match expected md5sum '
+                                'for {} recipe').format(self.name))
+            else:
+                info('{} download already cached, skipping'.format(self.name))
 
     def unpack(self, arch):
         info_main('Unpacking {} for {}'.format(self.name, arch))
@@ -418,6 +389,9 @@ class Recipe(with_metaclass(RecipeMeta)):
 
         filename = shprint(
             sh.basename, self.versioned_url).stdout[:-1].decode('utf-8')
+        ma = match(u'^(.+)#md5=([0-9a-f]{32})$', filename)
+        if ma:                  # fragmented URL?
+            filename = ma.group(1)
 
         with current_directory(build_dir):
             directory_name = self.get_build_dir(arch)
