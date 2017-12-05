@@ -1,4 +1,4 @@
-from pythonforandroid.toolchain import Bootstrap, shprint, current_directory, info, warning, ArchARM, info_main
+from pythonforandroid.toolchain import Bootstrap, shprint, current_directory, info, warning, ArchAndroid, info_main
 from os.path import join, exists
 from os import walk
 import glob
@@ -19,10 +19,8 @@ class PygameBootstrap(Bootstrap):
         #                 self.name)
         src_path = join(self.bootstrap_dir, 'build')
 
-        arch = self.ctx.archs[0]
-        if len(self.ctx.archs) > 1:
-            raise ValueError('built for more than one arch, but bootstrap cannot handle that yet')
-        info('Bootstrap running with arch {}'.format(arch))
+        # AND: Hardcoding armeabi - naughty!
+        arch = ArchAndroid(self.ctx)
 
         with current_directory(self.dist_dir):
 
@@ -33,6 +31,7 @@ class PygameBootstrap(Bootstrap):
 
             info('Copying default files')
             shprint(sh.cp, '-a', join(self.build_dir, 'project.properties'), '.')
+            shprint(sh.cp, '-a', join(src_path, 'local.properties'), '.')
             shprint(sh.cp, '-a', join(src_path, 'build.py'), '.')
             shprint(sh.cp, '-a', join(src_path, 'buildlib'), '.')
             shprint(sh.cp, '-a', join(src_path, 'src'), '.')
@@ -40,17 +39,12 @@ class PygameBootstrap(Bootstrap):
             shprint(sh.cp, '-a', join(src_path, 'res'), '.')
             shprint(sh.cp, '-a', join(src_path, 'blacklist.txt'), '.')
             shprint(sh.cp, '-a', join(src_path, 'whitelist.txt'), '.')
-
-            with open('local.properties', 'w') as fileh:
-                fileh.write('sdk.dir={}'.format(self.ctx.sdk_dir))
-
+            
             info('Copying python distribution')
             hostpython = sh.Command(self.ctx.hostpython)
-            try:
-                shprint(hostpython, '-OO', '-m', 'compileall', self.ctx.get_python_install_dir(),
-                        _tail=10, _filterout="^Listing")
-            except sh.ErrorReturnCode:
-                pass
+            # AND: This *doesn't* need to be in arm env?
+            shprint(hostpython, '-OO', '-m', 'compileall', self.ctx.get_python_install_dir(),
+                    _tail=10, _filterout="^Listing", _critical=True)
             if not exists('python-install'):
                 shprint(sh.cp, '-a', self.ctx.get_python_install_dir(), './python-install')
 
@@ -62,8 +56,9 @@ class PygameBootstrap(Bootstrap):
             if not exists(join('private', 'lib')):
                 shprint(sh.cp, '-a', join('python-install', 'lib'), 'private')
             shprint(sh.mkdir, '-p', join('private', 'include', 'python2.7'))
-
-            shprint(sh.mv, join('libs', arch.arch, 'libpymodules.so'), 'private/')
+            
+            # AND: Copylibs stuff should go here
+            shprint(sh.mv, join('libs', 'armeabi', 'libpymodules.so'), 'private/')
             shprint(sh.cp, join('python-install', 'include' , 'python2.7', 'pyconfig.h'), join('private', 'include', 'python2.7/'))
 
             info('Removing some unwanted files')

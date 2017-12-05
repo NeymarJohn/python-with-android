@@ -1,15 +1,19 @@
-from pythonforandroid.toolchain import BootstrapNDKRecipe
-from pythonforandroid.patching import is_arch
+from pythonforandroid.toolchain import NDKRecipe, shprint, info
+from os.path import exists, join
+import sh
 
-
-class LibSDL2Image(BootstrapNDKRecipe):
-    version = '2.0.1'
+class LibSDL2Image(NDKRecipe):
+    version = '2.0.0'
     url = 'https://www.libsdl.org/projects/SDL_image/release/SDL2_image-{version}.tar.gz'
     dir_name = 'SDL2_image'
-
-    patches = ['toggle_jpg_png_webp.patch',
-               ('disable_jpg.patch', is_arch('x86')),
-               'extra_cflags.patch',
-               'fix_with_ndk_15_plus.patch']
+    
+    def prebuild_arch(self, arch):
+        super(LibSDL2Image, self).prebuild_arch(arch)
+        build_dir = self.get_build_dir(arch.arch)
+        if exists(join(build_dir, '.patched')):
+            info('SDL2_image already patched, skipping')
+            return
+        self.apply_patch('disable_webp.patch')
+        shprint(sh.touch, join(build_dir, '.patched'))
 
 recipe = LibSDL2Image()

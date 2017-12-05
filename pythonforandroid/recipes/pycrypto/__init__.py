@@ -6,19 +6,26 @@ from pythonforandroid.toolchain import (
     info,
     shprint,
 )
-from os.path import join
+from os.path import exists, join, realpath
 import sh
+import glob
 
 
 class PyCryptoRecipe(CompiledComponentsPythonRecipe):
     version = '2.6.1'
     url = 'https://pypi.python.org/packages/source/p/pycrypto/pycrypto-{version}.tar.gz'
     depends = ['openssl', 'python2']
-    site_packages_name = 'Crypto'
 
-    patches = ['add_length.patch']
+    def prebuild_arch(self, arch):
+        super(PyCryptoRecipe, self).prebuild_arch(arch)
+        build_dir = self.get_build_dir(arch.arch)
+        if exists(join(build_dir, '.patched')):
+            print('pycrypto already patched, skipping')
+            return
+        self.apply_patch('add_length.patch')
+        shprint(sh.touch, join(build_dir, '.patched'))
 
-    def get_recipe_env(self, arch=None):
+    def get_recipe_env(self, arch):
         env = super(PyCryptoRecipe, self).get_recipe_env(arch)
         openssl_build_dir = Recipe.get_recipe('openssl', self.ctx).get_build_dir(arch.arch)
         env['CC'] = '%s -I%s' % (env['CC'], join(openssl_build_dir, 'include'))
