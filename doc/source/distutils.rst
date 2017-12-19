@@ -15,7 +15,7 @@ example will include all .py and .png files in the ``testapp``
 folder::
 
     from distutils.core import setup
-    from setuptools import find_packages
+    from setup
 
     setup(
         name='testapp_setup',
