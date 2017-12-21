@@ -7,7 +7,7 @@ import os
 
 
 class FFPyPlayerRecipe(CythonRecipe):
-    version = '6f7568b498715c2da88f061ebad082a042514923'
+    version = 'master'
     url = 'https://github.com/matham/ffpyplayer/archive/{version}.zip'
     depends = [('python2', 'python3crystax'), 'sdl2', 'ffmpeg']
     opt_depends = ['openssl', 'ffpyplayer_codecs']
