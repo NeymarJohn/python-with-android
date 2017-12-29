@@ -261,7 +261,6 @@ main.py that loads it.''')
     shutil.copy(args.presplash or default_presplash,
                 'src/main/res/drawable/presplash.jpg')
 
-    jars = []
     # If extra Java jars were requested, copy them into the libs directory
     if args.add_jar:
         for jarname in args.add_jar:
@@ -269,7 +268,7 @@ main.py that loads it.''')
                 print('Requested jar does not exist: {}'.format(jarname))
                 sys.exit(-1)
             shutil.copy(jarname, 'src/main/libs')
-            jars.append(basename(jarname))
+
     # if extra aar were requested, copy them into the libs directory
     aars = []
     if args.add_aar:
@@ -294,6 +293,8 @@ main.py that loads it.''')
     if args.intent_filters:
         with open(args.intent_filters) as fd:
             args.intent_filters = fd.read()
+    
+    args.add_activity = args.add_activity or []
 
     if args.extra_source_dirs:
         esd = []
@@ -380,7 +381,6 @@ main.py that loads it.''')
         'build.gradle',
         args=args,
         aars=aars,
-        jars=jars,
         android_api=android_api,
         build_tools_version=build_tools_version)
 
@@ -510,6 +510,8 @@ tools directory of the Android SDK.
     ap.add_argument('--sign', action='store_true',
                     help=('Try to sign the APK with your credentials. You must set '
                           'the appropriate environment variables.'))
+    ap.add_argument('--add-activity', dest='add_activity', action='append',
+                    help='Add this Java class as an Activity to the manifest.')
 
     if args is None:
         args = sys.argv[1:]
