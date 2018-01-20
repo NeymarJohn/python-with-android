@@ -10,8 +10,9 @@ import re
 import sh
 import subprocess
 
-from pythonforandroid.util import (ensure_dir, current_directory, BuildInterruptingException)
-from pythonforandroid.logger import (info, warning, info_notify, info_main, shprint)
+from pythonforandroid.util import (ensure_dir, current_directory)
+from pythonforandroid.logger import (info, warning, error, info_notify,
+                                     Err_Fore, info_main, shprint)
 from pythonforandroid.archs import ArchARM, ArchARMv7_a, ArchAarch_64, Archx86, Archx86_64
 from pythonforandroid.recipe import Recipe
 
@@ -223,7 +224,8 @@ class Context(object):
                         'maintain your own SDK download.')
                 sdk_dir = possible_dirs[0]
         if sdk_dir is None:
-            raise BuildInterruptingException('Android SDK dir was not specified, exiting.')
+            warning('Android SDK dir was not specified, exiting.')
+            exit(1)
         self.sdk_dir = realpath(sdk_dir)
 
         # Check what Android API we're using
@@ -242,11 +244,11 @@ class Context(object):
         self.android_api = android_api
 
         if self.android_api >= 21 and self.archs[0].arch == 'armeabi':
-            raise BuildInterruptingException(
-                'Asked to build for armeabi architecture with API '
-                '{}, but API 21 or greater does not support armeabi'.format(
-                    self.android_api),
-                instructions='You probably want to build with --arch=armeabi-v7a instead')
+            error('Asked to build for armeabi architecture with API '
+                  '{}, but API 21 or greater does not support armeabi'.format(
+                      self.android_api))
+            error('You probably want to build with --arch=armeabi-v7a instead')
+            exit(1)
 
         if exists(join(sdk_dir, 'tools', 'bin', 'avdmanager')):
             avdmanager = sh.Command(join(sdk_dir, 'tools', 'bin', 'avdmanager'))
@@ -255,9 +257,9 @@ class Context(object):
             android = sh.Command(join(sdk_dir, 'tools', 'android'))
             targets = android('list').stdout.decode('utf-8').split('\n')
         else:
-            raise BuildInterruptingException(
-                'Could not find `android` or `sdkmanager` binaries in Android SDK',
-                instructions='Make sure the path to the Android SDK is correct')
+            error('Could not find `android` or `sdkmanager` binaries in '
+                  'Android SDK. Exiting.')
+            exit(1)
         apis = [s for s in targets if re.match(r'^ *API level: ', s)]
         apis = [re.findall(r'[0-9]+', s) for s in apis]
         apis = [int(s[0]) for s in apis if s]
@@ -267,9 +269,10 @@ class Context(object):
             info(('Requested API target {} is available, '
                   'continuing.').format(android_api))
         else:
-            raise BuildInterruptingException(
-                ('Requested API target {} is not available, install '
-                 'it with the SDK android tool.').format(android_api))
+            warning(('Requested API target {} is not available, install '
+                     'it with the SDK android tool.').format(android_api))
+            warning('Exiting.')
+            exit(1)
 
         # Find the Android NDK
         # Could also use ANDROID_NDK, but doesn't look like many tools use this
@@ -302,7 +305,8 @@ class Context(object):
                         'maintain your own NDK download.')
                 ndk_dir = possible_dirs[0]
         if ndk_dir is None:
-            raise BuildInterruptingException('Android NDK dir was not specified')
+            warning('Android NDK dir was not specified, exiting.')
+            exit(1)
         self.ndk_dir = realpath(ndk_dir)
 
         # Find the NDK version, and check it against what the NDK dir
@@ -363,11 +367,11 @@ class Context(object):
         self.ndk_api = ndk_api
 
         if self.ndk_api > self.android_api:
-            raise BuildInterruptingException(
-                'Target NDK API is {}, higher than the target Android API {}.'.format(
-                    self.ndk_api, self.android_api),
-                instructions=('The NDK API is a minimum supported API number and must be lower '
-                              'than the target Android API'))
+            error('Target NDK API is {}, higher than the target Android API {}.'.format(
+                self.ndk_api, self.android_api))
+            error('The NDK API is a minimum supported API number and must be lower '
+                  'than the target Android API')
+            exit(1)
 
         info('Using {} NDK {}'.format(self.ndk.capitalize(), self.ndk_ver))
 
@@ -395,7 +399,8 @@ class Context(object):
                 self.cython = cython
                 break
         else:
-            raise BuildInterruptingException('No cython binary found.')
+            error('No cython binary found. Exiting.')
+            exit(1)
         if not self.cython:
             ok = False
             warning("Missing requirement: cython is not installed")
@@ -469,8 +474,9 @@ class Context(object):
                     executable))
 
         if not ok:
-            raise BuildInterruptingException(
-                'python-for-android cannot continue due to the missing executables above')
+            error('{}python-for-android cannot continue; aborting{}'.format(
+                Err_Fore.RED, Err_Fore.RESET))
+            sys.exit(1)
 
     def __init__(self):
         super(Context, self).__init__()
@@ -518,7 +524,8 @@ class Context(object):
                 new_archs.add(match)
         self.archs = list(new_archs)
         if not self.archs:
-            raise BuildInterruptingException('Asked to compile for no Archs, so failing.')
+            warning('Asked to compile for no Archs, so failing.')
+            exit(1)
         info('Will compile for the following archs: {}'.format(
             ', '.join([arch.arch for arch in self.archs])))
 

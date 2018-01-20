@@ -73,6 +73,7 @@ class BdistAPK(Command):
             sys.argv.append('--arch={}'.format(arch))
 
     def run(self):
+
         self.prepare_build_dir()
 
         from pythonforandroid.toolchain import main
