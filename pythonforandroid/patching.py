@@ -18,7 +18,6 @@ def is_platform(platform):
         return uname()[0] == platform
     return is_x
 
-
 is_linux = is_platform('Linux')
 is_darwin = is_platform('Darwin')
 
@@ -69,3 +68,4 @@ def is_ndk(ndk):
     def is_x(recipe, **kwargs):
         return recipe.ctx.ndk == ndk
     return is_x
+

@@ -2,18 +2,17 @@
     android libglob
     available via '-lglob' LDFLAG
 """
-from os.path import exists, join
-from pythonforandroid.recipe import CompiledComponentsPythonRecipe
-from pythonforandroid.toolchain import current_directory
-from pythonforandroid.logger import info, shprint
+from os.path import exists, join, dirname
+from pythonforandroid.toolchain import (CompiledComponentsPythonRecipe,
+                                        current_directory)
+from pythonforandroid.logger import shprint, info, warning, info_main
 import sh
-
 
 class LibGlobRecipe(CompiledComponentsPythonRecipe):
     """Make a glob.h and glob.so for the python_install_dir()"""
     version = '0.0.1'
     url = None
-    #
+    # 
     # glob.h and glob.c extracted from
     # https://github.com/white-gecko/TokyoCabinet, e.g.:
     #   https://raw.githubusercontent.com/white-gecko/TokyoCabinet/master/glob.h
@@ -50,7 +49,7 @@ class LibGlobRecipe(CompiledComponentsPythonRecipe):
 
         with current_directory(self.get_build_dir(arch.arch)):
             cflags = env['CFLAGS'].split()
-            cflags.extend(['-I.', '-c', '-l.', 'glob.c', '-I.'])  # , '-o', 'glob.o'])
+            cflags.extend(['-I.', '-c', '-l.', 'glob.c', '-I.']) # , '-o', 'glob.o'])
             shprint(cc, *cflags, _env=env)
 
             cflags = env['CFLAGS'].split()
@@ -71,6 +70,5 @@ class LibGlobRecipe(CompiledComponentsPythonRecipe):
                    )
             include_path = join(self.ctx.python_recipe.get_build_dir(arch.arch), 'Include')
             shprint(sh.cp, "glob.h", include_path)
-
 
 recipe = LibGlobRecipe()

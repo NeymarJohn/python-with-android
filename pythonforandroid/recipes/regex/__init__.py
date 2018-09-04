@@ -1,4 +1,4 @@
-from pythonforandroid.recipe import CompiledComponentsPythonRecipe
+from pythonforandroid.toolchain import CompiledComponentsPythonRecipe
 
 
 class RegexRecipe(CompiledComponentsPythonRecipe):

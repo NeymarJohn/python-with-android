@@ -95,10 +95,8 @@ import re as _re
 import sys as _sys
 import textwrap as _textwrap
 
-
 def _(s):
     return s
-
 
 try:
     _set = set
@@ -125,7 +123,6 @@ except NameError:
 def _callable(obj):
     return hasattr(obj, '__call__') or hasattr(obj, '__bases__')
 
-
 # silence Python 2.6 buggy warnings about Exception.message
 if _sys.version_info[:2] == (2, 6):
     import warnings
@@ -147,7 +144,6 @@ REMAINDER = '...'
 # =============================
 # Utility functions and classes
 # =============================
-
 
 class _AttributeHolder(object):
     """Abstract base class that provides __repr__.
@@ -1169,7 +1165,6 @@ class FileType(object):
 # Optional and Positional Parsing
 # ===========================
 
-
 class Namespace(_AttributeHolder):
     """Simple object for storing attributes.
 
@@ -1269,6 +1264,7 @@ class _ActionsContainer(object):
             if action.dest == dest and action.default is not None:
                 return action.default
         return self._defaults.get(dest, None)
+
 
     # =======================
     # Adding argument actions

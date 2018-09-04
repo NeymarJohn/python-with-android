@@ -1,6 +1,8 @@
 
-from pythonforandroid.toolchain import Recipe, current_directory, shprint
-from os.path import exists, join
+from pythonforandroid.toolchain import Recipe, shprint, current_directory, ArchARM
+from os.path import exists, join, realpath
+from os import uname
+import glob
 import sh
 
 
@@ -27,6 +29,5 @@ class HarfbuzzRecipe(Recipe):
             shprint(sh.make, '-j5', _env=env)
 
             shprint(sh.cp, '-L', join('src', '.libs', 'libharfbuzz.so'), self.ctx.libs_dir)
-
 
 recipe = HarfbuzzRecipe()

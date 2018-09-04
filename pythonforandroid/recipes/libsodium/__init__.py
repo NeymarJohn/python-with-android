@@ -2,7 +2,6 @@ from pythonforandroid.toolchain import Recipe, shprint, shutil, current_director
 from os.path import exists, join
 import sh
 
-
 class LibsodiumRecipe(Recipe):
     version = '1.0.8'
     url = 'https://github.com/jedisct1/libsodium/releases/download/{version}/libsodium-{version}.tar.gz'
@@ -25,6 +24,5 @@ class LibsodiumRecipe(Recipe):
         env = super(LibsodiumRecipe, self).get_recipe_env(arch)
         env['CFLAGS'] += ' -Os'
         return env
-
 
 recipe = LibsodiumRecipe()

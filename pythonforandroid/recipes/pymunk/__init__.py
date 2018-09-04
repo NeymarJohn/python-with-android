@@ -1,5 +1,9 @@
+from pythonforandroid.toolchain import PythonRecipe
+from pythonforandroid.toolchain import CythonRecipe
 from pythonforandroid.recipe import CompiledComponentsPythonRecipe
+from pythonforandroid.logger import info
 
+import os.path
 
 class PymunkRecipe(CompiledComponentsPythonRecipe):
     name = "pymunk"
@@ -15,8 +19,7 @@ class PymunkRecipe(CompiledComponentsPythonRecipe):
         env['LDFLAGS'] += " -shared -llog"
         env['LDFLAGS'] += " -landroid -lpython2.7"
         env['LDFLAGS'] += " --sysroot={ctx.ndk_dir}/platforms/android-{ctx.android_api}/arch-{arch_noeabi}".format(
-            ctx=self.ctx, arch_noeabi=arch_noeabi)
+		ctx=self.ctx, arch_noeabi=arch_noeabi)
         return env
-
 
 recipe = PymunkRecipe()

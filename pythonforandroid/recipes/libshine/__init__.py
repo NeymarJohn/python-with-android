@@ -1,5 +1,7 @@
-from pythonforandroid.toolchain import Recipe, current_directory, shprint
+from pythonforandroid.toolchain import Recipe, shprint, current_directory, ArchARM
 from os.path import exists, join, realpath
+from os import uname
+import glob
 import sh
 
 
@@ -25,6 +27,5 @@ class LibShineRecipe(Recipe):
                     _env=env)
             shprint(sh.make, '-j4', _env=env)
             shprint(sh.make, 'install', _env=env)
-
 
 recipe = LibShineRecipe()

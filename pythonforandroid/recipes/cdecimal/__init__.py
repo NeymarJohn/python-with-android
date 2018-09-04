@@ -1,4 +1,5 @@
-from pythonforandroid.recipe import CompiledComponentsPythonRecipe
+
+from pythonforandroid.toolchain import CompiledComponentsPythonRecipe
 from pythonforandroid.patching import is_darwin
 
 

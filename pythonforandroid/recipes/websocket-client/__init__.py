@@ -25,5 +25,4 @@ class WebSocketClient(Recipe):
     depends = ['kivy', 'python2', 'android', 'pyjnius',
                'cryptography', 'pyasn1', 'pyopenssl']
 
-
 recipe = WebSocketClient()

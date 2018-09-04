@@ -1,5 +1,6 @@
 from __future__ import print_function
 from setuptools import Command
+from pythonforandroid import toolchain
 
 import sys
 from os.path import realpath, join, exists, dirname, curdir, basename, split
@@ -32,6 +33,7 @@ class BdistAPK(Command):
         # options. However, it works...
         for (option, (source, value)) in option_dict.items():
             setattr(self, option, str(value))
+
 
     def finalize_options(self):
 
@@ -132,7 +134,7 @@ class BdistAPK(Command):
 def _set_user_options():
     # This seems like a silly way to do things, but not sure if there's a
     # better way to pass arbitrary options onwards to p4a
-    user_options = [('requirements=', None, None), ]
+    user_options = [('requirements=', None, None),]
     for i, arg in enumerate(sys.argv):
         if arg.startswith('--'):
             if ('=' in arg or
@@ -142,6 +144,5 @@ def _set_user_options():
                 user_options.append((arg[2:], None, None))
 
     BdistAPK.user_options = user_options
-
 
 _set_user_options()

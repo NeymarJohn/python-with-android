@@ -1,5 +1,6 @@
 
-from pythonforandroid.recipe import PythonRecipe
+from pythonforandroid.toolchain import PythonRecipe, shprint
+import sh
 
 
 class FlaskRecipe(PythonRecipe):

@@ -1,4 +1,8 @@
 from pythonforandroid.toolchain import Bootstrap
+from os.path import join, exists
+from os import walk
+import glob
+import sh
 
 
 class EmptyBootstrap(Bootstrap):
@@ -11,6 +15,5 @@ class EmptyBootstrap(Bootstrap):
     def run_distribute(self):
         print('empty bootstrap has no distribute')
         exit(1)
-
 
 bootstrap = EmptyBootstrap()

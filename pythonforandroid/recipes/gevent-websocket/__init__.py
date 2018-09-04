@@ -1,4 +1,4 @@
-from pythonforandroid.recipe import PythonRecipe
+from pythonforandroid.toolchain import PythonRecipe
 
 
 class GeventWebsocketRecipe(PythonRecipe):
@@ -7,6 +7,5 @@ class GeventWebsocketRecipe(PythonRecipe):
     depends = [('python2', 'python3crystax'), 'setuptools']
     site_packages_name = 'geventwebsocket'
     call_hostpython_via_targetpython = False
-
 
 recipe = GeventWebsocketRecipe()

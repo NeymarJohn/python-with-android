@@ -1,4 +1,4 @@
-from pythonforandroid.recipe import CythonRecipe
+from pythonforandroid.toolchain import CythonRecipe
 
 
 class CymunkRecipe(CythonRecipe):

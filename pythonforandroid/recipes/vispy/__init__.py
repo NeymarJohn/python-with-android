@@ -1,5 +1,5 @@
 
-from pythonforandroid.recipe import PythonRecipe
+from pythonforandroid.toolchain import PythonRecipe
 
 
 class VispyRecipe(PythonRecipe):

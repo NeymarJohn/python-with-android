@@ -63,5 +63,4 @@ class OpenSSLRecipe(Recipe):
             self.install_libs(arch, 'libssl' + self.version + '.so',
                               'libcrypto' + self.version + '.so')
 
-
 recipe = OpenSSLRecipe()
