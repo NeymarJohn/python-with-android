@@ -7,7 +7,7 @@ from pythonforandroid.logger import (info, shprint)
 class ReportLabRecipe(CompiledComponentsPythonRecipe):
     version = 'c088826211ca'
     url = 'https://bitbucket.org/rptlab/reportlab/get/{version}.tar.gz'
-    depends = [('python2', 'python3crystax'), 'freetype']
+    depends = ['python2', 'freetype']
 
     def prebuild_arch(self, arch):
         if not self.is_patched(arch):
@@ -26,15 +26,16 @@ class ReportLabRecipe(CompiledComponentsPythonRecipe):
             info('reportlab recipe: ft_lib_dir={}'.format(ft_lib_dir))
             info('reportlab recipe: ft_inc_dir={}'.format(ft_inc_dir))
             with current_directory(recipe_dir):
+                sh.ls('-lathr')
                 ensure_dir(tmp_dir)
                 pfbfile = os.path.join(tmp_dir, "pfbfer-20070710.zip")
                 if not os.path.isfile(pfbfile):
                     sh.wget("http://www.reportlab.com/ftp/pfbfer-20070710.zip", "-O", pfbfile)
                 sh.unzip("-u", "-d", os.path.join(recipe_dir, "src", "reportlab", "fonts"), pfbfile)
                 if os.path.isfile("setup.py"):
-                    with open('setup.py', 'r') as f:
+                    with open('setup.py', 'rb') as f:
                         text = f.read().replace('_FT_LIB_', ft_lib_dir).replace('_FT_INC_', ft_inc_dir)
-                    with open('setup.py', 'w') as f:
+                    with open('setup.py', 'wb') as f:
                         f.write(text)
 
 

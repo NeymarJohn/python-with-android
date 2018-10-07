@@ -75,7 +75,11 @@ If you need assistance, you can ask for help on our mailing list:
 -  User Group: https://groups.google.com/group/kivy-users
 -  Email: kivy-users@googlegroups.com
 
-We also have `#support Discord channel <https://chat.kivy.org/>`_.
+We also have an IRC channel:
+
+-  Server: irc.freenode.net
+-  Port: 6667, 6697 (SSL only)
+-  Channel: #kivy
 
 Contributing
 ============
@@ -90,7 +94,11 @@ discussions about developing the Kivy framework and its sister projects:
 -  Dev Group: https://groups.google.com/group/kivy-dev
 -  Email: kivy-dev@googlegroups.com
 
-We also have `#dev Discord channel <https://chat.kivy.org/>`_.
+IRC channel:
+
+-  Server: irc.freenode.net
+-  Port: 6667, 6697 (SSL only)
+-  Channel: #kivy or #kivy-dev
 
 License
 =======

@@ -7,8 +7,7 @@ services:
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -qq python2.7 python3
-  - sudo pip install tox>=2.0
+  - sudo apt-get install -qq python-tox
 
 env:
   - COMMAND='. venv/bin/activate && cd testapps/ && python setup_testapp_python2.py apk --sdk-dir /opt/android/android-sdk --ndk-dir /opt/android/android-ndk'
