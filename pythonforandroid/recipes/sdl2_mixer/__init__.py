@@ -1,4 +1,4 @@
-from pythonforandroid.recipe import BootstrapNDKRecipe
+from pythonforandroid.toolchain import BootstrapNDKRecipe
 
 
 class LibSDL2Mixer(BootstrapNDKRecipe):
@@ -7,6 +7,5 @@ class LibSDL2Mixer(BootstrapNDKRecipe):
     dir_name = 'SDL2_mixer'
 
     patches = ['toggle_modplug_mikmod_smpeg_ogg.patch']
-
 
 recipe = LibSDL2Mixer()

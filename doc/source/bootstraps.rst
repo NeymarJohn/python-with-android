@@ -14,14 +14,13 @@ components such as Android source code and various build files.
 
 This page describes the basics of how bootstraps work so that you can
 create and use your own if you like, making it easy to build new kinds
-of Python projects for Android.
+of Python project for Android.
   
 
 Creating a new bootstrap
 ------------------------
 
-A bootstrap class consists of just a few basic components, though one of them
-must do a lot of work. 
+A bootstrap class consists of just a few basic components, though one of them must do a lot of work. 
 
 For instance, the SDL2 bootstrap looks like the following::
 

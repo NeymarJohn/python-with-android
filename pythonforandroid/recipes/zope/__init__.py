@@ -1,7 +1,8 @@
 
-from pythonforandroid.recipe import PythonRecipe
-from os.path import join
-
+from pythonforandroid.toolchain import PythonRecipe, shprint, current_directory
+from os.path import exists, join
+import sh
+import glob
 
 class ZopeRecipe(PythonRecipe):
     name = 'zope'
@@ -9,7 +10,7 @@ class ZopeRecipe(PythonRecipe):
     url = 'http://pypi.python.org/packages/source/z/zope.interface/zope.interface-{version}.tar.gz'
 
     depends = ['python2']
-
+    
     def get_recipe_env(self, arch):
         env = super(ZopeRecipe, self).get_recipe_env(arch)
 
@@ -22,6 +23,5 @@ class ZopeRecipe(PythonRecipe):
         super(ZopeRecipe, self).postbuild_arch(arch)
 
         # Should do some deleting here
-
 
 recipe = ZopeRecipe()

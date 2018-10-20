@@ -95,10 +95,8 @@ import re as _re
 import sys as _sys
 import textwrap as _textwrap
 
-
 def _(s):
     return s
-
 
 try:
     _set = set
@@ -125,7 +123,6 @@ except NameError:
 def _callable(obj):
     return hasattr(obj, '__call__') or hasattr(obj, '__bases__')
 
-
 # silence Python 2.6 buggy warnings about Exception.message
 if _sys.version_info[:2] == (2, 6):
     import warnings
@@ -147,7 +144,6 @@ REMAINDER = '...'
 # =============================
 # Utility functions and classes
 # =============================
-
 
 class _AttributeHolder(object):
     """Abstract base class that provides __repr__.
@@ -651,8 +647,8 @@ class HelpFormatter(object):
 
     def _fill_text(self, text, width, indent):
         text = self._whitespace_matcher.sub(' ', text).strip()
-        return _textwrap.fill(
-            text, width, initial_indent=indent, subsequent_indent=indent)
+        return _textwrap.fill(text, width, initial_indent=indent,
+                                           subsequent_indent=indent)
 
     def _get_help_string(self, action):
         return action.help
@@ -705,7 +701,7 @@ def _get_action_name(argument):
     if argument is None:
         return None
     elif argument.option_strings:
-        return '/'.join(argument.option_strings)
+        return  '/'.join(argument.option_strings)
     elif argument.metavar not in (None, SUPPRESS):
         return argument.metavar
     elif argument.dest not in (None, SUPPRESS):
@@ -1169,7 +1165,6 @@ class FileType(object):
 # Optional and Positional Parsing
 # ===========================
 
-
 class Namespace(_AttributeHolder):
     """Simple object for storing attributes.
 
@@ -1269,6 +1264,7 @@ class _ActionsContainer(object):
             if action.dest == dest and action.default is not None:
                 return action.default
         return self._defaults.get(dest, None)
+
 
     # =======================
     # Adding argument actions
@@ -2070,8 +2066,8 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
 
         # if multiple actions match, the option string was ambiguous
         if len(option_tuples) > 1:
-            options = ', '.join(
-                    [option_string for action, option_string, explicit_arg in option_tuples])
+            options = ', '.join([option_string
+                for action, option_string, explicit_arg in option_tuples])
             tup = arg_string, options
             self.error(_('ambiguous option: %s could match %s') % tup)
 

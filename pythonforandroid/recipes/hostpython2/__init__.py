@@ -1,15 +1,14 @@
 
 from pythonforandroid.toolchain import Recipe, shprint, current_directory, info, warning
 from os.path import join, exists
-import os
+from os import chdir
 import sh
 
 
 class Hostpython2Recipe(Recipe):
     version = '2.7.2'
-    url = 'https://python.org/ftp/python/{version}/Python-{version}.tar.bz2'
+    url = 'http://python.org/ftp/python/{version}/Python-{version}.tar.bz2'
     name = 'hostpython2'
-    patches = ['fix-segfault-pygchead.patch']
 
     conflicts = ['hostpython3']
 
@@ -31,12 +30,12 @@ class Hostpython2Recipe(Recipe):
 
             if exists('hostpython'):
                 info('hostpython already exists, skipping build')
-                self.ctx.hostpython = join(self.get_build_dir(), 'hostpython')
-                self.ctx.hostpgen = join(self.get_build_dir(), 'hostpgen')
+                self.ctx.hostpython = join(self.get_build_dir(),
+                                           'hostpython')
+                self.ctx.hostpgen = join(self.get_build_dir(),
+                                           'hostpgen')
                 return
-
-            if 'LIBS' in os.environ:
-                os.environ.pop('LIBS')
+            
             configure = sh.Command('./configure')
 
             shprint(configure)

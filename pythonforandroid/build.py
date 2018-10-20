@@ -2,23 +2,21 @@ from __future__ import print_function
 
 from os.path import (join, realpath, dirname, expanduser, exists,
                      split, isdir)
-from os import environ
+from os import environ, listdir
 import os
 import glob
 import sys
 import re
 import sh
-import subprocess
 
 from pythonforandroid.util import (ensure_dir, current_directory)
 from pythonforandroid.logger import (info, warning, error, info_notify,
-                                     Err_Fore, info_main, shprint)
-from pythonforandroid.archs import ArchARM, ArchARMv7_a, ArchAarch_64, Archx86, Archx86_64
+                                     Err_Fore, Err_Style, info_main,
+                                     shprint)
+from pythonforandroid.archs import ArchARM, ArchARMv7_a, Archx86, Archx86_64, ArchAarch_64
 from pythonforandroid.recipe import Recipe
 
 DEFAULT_ANDROID_API = 15
-
-DEFAULT_NDK_API = 21
 
 
 class Context(object):
@@ -26,19 +24,14 @@ class Context(object):
     will be instantiated and used to hold all the build state.'''
 
     env = environ.copy()
-    # the filepath of toolchain.py
-    root_dir = None
-    # the root dir where builds and dists will be stored
-    storage_dir = None
+    root_dir = None     # the filepath of toolchain.py
+    storage_dir = None  # the root dir where builds and dists will be stored
 
-    # in which bootstraps are copied for building
-    # and recipes are built
-    build_dir = None
-    # the Android project folder where everything ends up
-    dist_dir = None
-    # where Android libs are cached after build
-    # but before being placed in dists
-    libs_dir = None
+    build_dir = None  # in which bootstraps are copied for building
+                      # and recipes are built
+    dist_dir = None  # the Android project folder where everything ends up
+    libs_dir = None  # where Android libs are cached after build but
+                     # before being placed in dists
     aars_dir = None
 
     ccache = None  # whether to use ccache
@@ -52,9 +45,7 @@ class Context(object):
 
     recipe_build_order = None  # Will hold the list of all built recipes
 
-    symlink_java_src = False  # If True, will symlink instead of copying during build
-
-    java_build_tool = 'auto'
+    symlink_java_src = False # If True, will symlink instead of copying during build
 
     @property
     def packages_path(self):
@@ -128,19 +119,6 @@ class Context(object):
         self._android_api = value
 
     @property
-    def ndk_api(self):
-        '''The API number compile against'''
-        if self._ndk_api is None:
-            raise ValueError('Tried to access ndk_api but it has not '
-                             'been set - this should not happen, something '
-                             'went wrong!')
-        return self._ndk_api
-
-    @ndk_api.setter
-    def ndk_api(self, value):
-        self._ndk_api = value
-
-    @property
     def ndk_ver(self):
         '''The version of the NDK being used for compilation.'''
         if self._ndk_ver is None:
@@ -179,12 +157,8 @@ class Context(object):
     def ndk_dir(self, value):
         self._ndk_dir = value
 
-    def prepare_build_environment(self,
-                                  user_sdk_dir,
-                                  user_ndk_dir,
-                                  user_android_api,
-                                  user_ndk_ver,
-                                  user_ndk_api):
+    def prepare_build_environment(self, user_sdk_dir, user_ndk_dir,
+                                  user_android_api, user_ndk_ver):
         '''Checks that build dependencies exist and sets internal variables
         for the Android SDK etc.
 
@@ -197,20 +171,20 @@ class Context(object):
         if self._build_env_prepared:
             return
 
+        # AND: This needs revamping to carefully check each dependency
+        # in turn
         ok = True
 
         # Work out where the Android SDK is
         sdk_dir = None
         if user_sdk_dir:
             sdk_dir = user_sdk_dir
-        # This is the old P4A-specific var
-        if sdk_dir is None:
+        if sdk_dir is None:  # This is the old P4A-specific var
             sdk_dir = environ.get('ANDROIDSDK', None)
-        # This seems used more conventionally
-        if sdk_dir is None:
+        if sdk_dir is None:  # This seems used more conventionally
             sdk_dir = environ.get('ANDROID_HOME', None)
-        # Checks in the buildozer SDK dir, useful for debug tests of p4a
-        if sdk_dir is None:
+        if sdk_dir is None:  # Checks in the buildozer SDK dir, useful
+            #                # for debug tests of p4a
             possible_dirs = glob.glob(expanduser(join(
                 '~', '.buildozer', 'android', 'platform', 'android-sdk-*')))
             possible_dirs = [d for d in possible_dirs if not
@@ -232,11 +206,13 @@ class Context(object):
         android_api = None
         if user_android_api:
             android_api = user_android_api
-            info('Getting Android API version from user argument: {}'.format(android_api))
-        elif 'ANDROIDAPI' in environ:
-            android_api = environ['ANDROIDAPI']
-            info('Found Android API target in $ANDROIDAPI: {}'.format(android_api))
-        else:
+            if android_api is not None:
+                info('Getting Android API version from user argument')
+        if android_api is None:
+            android_api = environ.get('ANDROIDAPI', None)
+            if android_api is not None:
+                info('Found Android API target in $ANDROIDAPI')
+        if android_api is None:
             info('Android API target was not set manually, using '
                  'the default of {}'.format(DEFAULT_ANDROID_API))
             android_api = DEFAULT_ANDROID_API
@@ -259,7 +235,6 @@ class Context(object):
         else:
             error('Could not find `android` or `sdkmanager` binaries in '
                   'Android SDK. Exiting.')
-            exit(1)
         apis = [s for s in targets if re.match(r'^ *API level: ', s)]
         apis = [re.findall(r'[0-9]+', s) for s in apis]
         apis = [int(s[0]) for s in apis if s]
@@ -279,19 +254,20 @@ class Context(object):
         ndk_dir = None
         if user_ndk_dir:
             ndk_dir = user_ndk_dir
-            info('Getting NDK dir from from user argument')
+            if ndk_dir is not None:
+                info('Getting NDK dir from from user argument')
         if ndk_dir is None:  # The old P4A-specific dir
             ndk_dir = environ.get('ANDROIDNDK', None)
             if ndk_dir is not None:
-                info('Found NDK dir in $ANDROIDNDK: {}'.format(ndk_dir))
+                info('Found NDK dir in $ANDROIDNDK')
         if ndk_dir is None:  # Apparently the most common convention
             ndk_dir = environ.get('NDK_HOME', None)
             if ndk_dir is not None:
-                info('Found NDK dir in $NDK_HOME: {}'.format(ndk_dir))
+                info('Found NDK dir in $NDK_HOME')
         if ndk_dir is None:  # Another convention (with maven?)
             ndk_dir = environ.get('ANDROID_NDK_HOME', None)
             if ndk_dir is not None:
-                info('Found NDK dir in $ANDROID_NDK_HOME: {}'.format(ndk_dir))
+                info('Found NDK dir in $ANDROID_NDK_HOME')
         if ndk_dir is None:  # Checks in the buildozer NDK dir, useful
             #                # for debug tests of p4a
             possible_dirs = glob.glob(expanduser(join(
@@ -315,11 +291,11 @@ class Context(object):
         if user_ndk_ver:
             ndk_ver = user_ndk_ver
             if ndk_dir is not None:
-                info('Got NDK version from from user argument: {}'.format(ndk_ver))
+                info('Got NDK version from from user argument')
         if ndk_ver is None:
             ndk_ver = environ.get('ANDROIDNDKVER', None)
-            if ndk_ver is not None:
-                info('Got NDK version from $ANDROIDNDKVER: {}'.format(ndk_ver))
+            if ndk_dir is not None:
+                info('Got NDK version from $ANDROIDNDKVER')
 
         self.ndk = 'google'
 
@@ -334,7 +310,8 @@ class Context(object):
                 self.ndk = 'crystax'
             if ndk_ver is None:
                 ndk_ver = reported_ndk_ver
-                info(('Got Android NDK version from the NDK dir: {}').format(ndk_ver))
+                info(('Got Android NDK version from the NDK dir: '
+                      'it is {}').format(ndk_ver))
             else:
                 if ndk_ver != reported_ndk_ver:
                     warning('NDK version was set as {}, but checking '
@@ -346,32 +323,9 @@ class Context(object):
                     warning('If the NDK dir result is correct, you don\'t '
                             'need to manually set the NDK ver.')
         if ndk_ver is None:
-            warning('Android NDK version could not be found. This probably'
-                    'won\'t cause any problems, but if necessary you can'
-                    'set it with `--ndk-version=...`.')
-        self.ndk_ver = ndk_ver
-
-        ndk_api = None
-        if user_ndk_api:
-            ndk_api = user_ndk_api
-            info('Getting NDK API version (i.e. minimum supported API) from user argument')
-        elif 'NDKAPI' in environ:
-            ndk_api = environ.get('NDKAPI', None)
-            info('Found Android API target in $NDKAPI')
-        else:
-            ndk_api = min(self.android_api, DEFAULT_NDK_API)
-            warning('NDK API target was not set manually, using '
-                    'the default of {} = min(android-api={}, default ndk-api={})'.format(
-                        ndk_api, self.android_api, DEFAULT_NDK_API))
-        ndk_api = int(ndk_api)
-        self.ndk_api = ndk_api
-
-        if self.ndk_api > self.android_api:
-            error('Target NDK API is {}, higher than the target Android API {}.'.format(
-                self.ndk_api, self.android_api))
-            error('The NDK API is a minimum supported API number and must be lower '
-                  'than the target Android API')
+            warning('Android NDK version could not be found, exiting.')
             exit(1)
+        self.ndk_ver = ndk_ver
 
         info('Using {} NDK {}'.format(self.ndk.capitalize(), self.ndk_ver))
 
@@ -393,7 +347,7 @@ class Context(object):
         if not self.ccache:
             info('ccache is missing, the build will not be optimized in the '
                  'future.')
-        for cython_fn in ("cython", "cython3", "cython2", "cython-2.7"):
+        for cython_fn in ("cython2", "cython-2.7", "cython"):
             cython = sh.which(cython_fn)
             if cython:
                 self.cython = cython
@@ -405,7 +359,7 @@ class Context(object):
             ok = False
             warning("Missing requirement: cython is not installed")
 
-        # This would need to be changed if supporting multiarch APKs
+        # AND: need to change if supporting multiple archs at once
         arch = self.archs[0]
         platform_dir = arch.platform_dir
         toolchain_prefix = arch.toolchain_prefix
@@ -413,7 +367,7 @@ class Context(object):
         self.ndk_platform = join(
             self.ndk_dir,
             'platforms',
-            'android-{}'.format(self.ndk_api),
+            'android-{}'.format(self.android_api),
             platform_dir)
         if not exists(self.ndk_platform):
             warning('ndk_platform doesn\'t exist: {}'.format(
@@ -426,7 +380,7 @@ class Context(object):
 
         toolchain_versions = []
         toolchain_path = join(self.ndk_dir, 'toolchains')
-        if isdir(toolchain_path):
+        if os.path.isdir(toolchain_path):
             toolchain_contents = glob.glob('{}/{}-*'.format(toolchain_path,
                                                             toolchain_prefix))
             toolchain_versions = [split(path)[-1][len(toolchain_prefix) + 1:]
@@ -487,7 +441,6 @@ class Context(object):
         self._sdk_dir = None
         self._ndk_dir = None
         self._android_api = None
-        self._ndk_api = None
         self._ndk_ver = None
         self.ndk = None
 
@@ -502,7 +455,6 @@ class Context(object):
             ArchARM(self),
             ArchARMv7_a(self),
             Archx86(self),
-            Archx86_64(self),
             ArchAarch_64(self),
             )
 
@@ -543,13 +495,14 @@ class Context(object):
         '''Returns the location of site-packages in the python-install build
         dir.
         '''
-        if self.python_recipe.name == 'python2':
-            return join(self.get_python_install_dir(),
-                        'lib', 'python2.7', 'site-packages')
 
-        # Only python2 is a special case, other python recipes use the
-        # python install dir
-        return self.get_python_install_dir()
+        # AND: This *must* be replaced with something more general in
+        # order to support multiple python versions and/or multiple
+        # archs.
+        if self.python_recipe.from_crystax:
+            return self.get_python_install_dir()
+        return join(self.get_python_install_dir(),
+                    'lib', 'python2.7', 'site-packages')
 
     def get_libs_dir(self, arch):
         '''The libs dir for a given arch.'''
@@ -560,30 +513,6 @@ class Context(object):
         return exists(join(self.get_libs_dir(arch), lib))
 
     def has_package(self, name, arch=None):
-        # If this is a file path, it'll need special handling:
-        if (name.find("/") >= 0 or name.find("\\") >= 0) and \
-                name.find("://") < 0:  # (:// would indicate an url)
-            if not os.path.exists(name):
-                # Non-existing dir, cannot look this up.
-                return False
-            if os.path.exists(os.path.join(name, "setup.py")):
-                # Get name from setup.py:
-                name = subprocess.check_output([
-                    sys.executable, "setup.py", "--name"],
-                    cwd=name)
-                try:
-                    name = name.decode('utf-8', 'replace')
-                except AttributeError:
-                    pass
-                name = name.strip()
-                if len(name) == 0:
-                    # Failed to look up any meaningful name.
-                    return False
-            else:
-                # A folder with whatever, cannot look this up.
-                return False
-
-        # Try to look up recipe by name:
         try:
             recipe = Recipe.get_recipe(name, self)
         except IOError:
@@ -646,6 +575,7 @@ def build_recipes(build_order, python_modules, ctx):
                      .format(recipe.name))
 
         # 4) biglink everything
+        # AND: Should make this optional
         info_main('# Biglinking object files')
         if not ctx.python_recipe or not ctx.python_recipe.from_crystax:
             biglink(ctx, arch)
@@ -678,9 +608,7 @@ def run_pymodules_install(ctx, modules):
 
     venv = sh.Command(ctx.virtualenv)
     with current_directory(join(ctx.build_dir)):
-        shprint(venv,
-                '--python=python{}'.format(ctx.python_recipe.major_minor_version_string),
-                'venv')
+        shprint(venv, '--python=python2.7', 'venv')
 
         info('Creating a requirements.txt file for the Python modules')
         with open('requirements.txt', 'w') as fileh:
@@ -700,8 +628,8 @@ def run_pymodules_install(ctx, modules):
         # This bash method is what old-p4a used
         # It works but should be replaced with something better
         shprint(sh.bash, '-c', (
-            "env CC=/bin/false CXX=/bin/false "
-            "PYTHONPATH={0} venv/bin/pip install --target '{0}' --no-deps -r requirements.txt"
+            "source venv/bin/activate && env CC=/bin/false CXX=/bin/false "
+            "PYTHONPATH={0} pip install --target '{0}' --no-deps -r requirements.txt"
         ).format(ctx.get_site_packages_dir()))
 
 
@@ -738,17 +666,12 @@ def biglink(ctx, arch):
     info('target {}'.format(join(ctx.get_libs_dir(arch.arch),
                                  'libpymodules.so')))
     do_biglink = copylibs_function if ctx.copy_libs else biglink_function
-
-    # Move to the directory containing crtstart_so.o and crtend_so.o
-    # This is necessary with newer NDKs? A gcc bug?
-    with current_directory(join(ctx.ndk_platform, 'usr', 'lib')):
-        do_biglink(
-            join(ctx.get_libs_dir(arch.arch), 'libpymodules.so'),
-            obj_dir.split(' '),
-            extra_link_dirs=[join(ctx.bootstrap.build_dir,
-                                  'obj', 'local', arch.arch),
-                             os.path.abspath('.')],
-            env=env)
+    do_biglink(
+        join(ctx.get_libs_dir(arch.arch), 'libpymodules.so'),
+        obj_dir.split(' '),
+        extra_link_dirs=[join(ctx.bootstrap.build_dir,
+                              'obj', 'local', arch.arch)],
+        env=env)
 
 
 def biglink_function(soname, objs_paths, extra_link_dirs=[], env=None):
@@ -914,8 +837,8 @@ def copylibs_function(soname, objs_paths, extra_link_dirs=[], env=None):
                         if needso:
                             lib = needso.group(1)
                             if (lib not in needed_libs
-                                    and lib not in found_libs
-                                    and lib not in blacklist_libs):
+                                and lib not in found_libs
+                                and lib not in blacklist_libs):
                                 needed_libs.append(needso.group(1))
 
                 sofiles += found_sofiles

@@ -1,3 +1,4 @@
+
 import logging
 import os
 import re
@@ -15,7 +16,7 @@ if not six.PY3:
     stderr = codecs.getwriter('utf8')(stderr)
 
 if six.PY2:
-    unistr = unicode  # noqa F821
+    unistr = unicode
 else:
     unistr = str
 
@@ -41,7 +42,6 @@ class LevelDifferentiatingFormatter(logging.Formatter):
                 Err_Style.BRIGHT, Err_Fore.LIGHTBLACK_EX, Err_Fore.RESET,
                 Err_Style.RESET_ALL) + record.msg
         return super(LevelDifferentiatingFormatter, self).format(record)
-
 
 logger = logging.getLogger('p4a')
 if not hasattr(logger, 'touched'):  # Necessary as importlib reloads
@@ -71,7 +71,6 @@ class colorama_shim(object):
 
     def enable(self, enable):
         self._enabled = enable
-
 
 Out_Style = colorama_shim(Colo_Style)
 Out_Fore = colorama_shim(Colo_Fore)
@@ -148,10 +147,8 @@ def shprint(command, *args, **kwargs):
     kwargs["_bg"] = True
     is_critical = kwargs.pop('_critical', False)
     tail_n = kwargs.pop('_tail', None)
-    full_debug = False
     if "P4A_FULL_DEBUG" in os.environ:
         tail_n = 0
-        full_debug = True
     filter_in = kwargs.pop('_filter', None)
     filter_out = kwargs.pop('_filterout', None)
     if len(logger.handlers) > 1:
@@ -176,13 +173,7 @@ def shprint(command, *args, **kwargs):
         msg_width = columns - len(msg_hdr) - 1
         output = command(*args, **kwargs)
         for line in output:
-            if isinstance(line, bytes):
-                line = line.decode('utf-8', errors='replace')
             if logger.level > logging.DEBUG:
-                if full_debug:
-                    stdout.write(line)
-                    stdout.flush()
-                    continue
                 msg = line.replace(
                     '\n', ' ').replace(
                         '\t', ' ').replace(

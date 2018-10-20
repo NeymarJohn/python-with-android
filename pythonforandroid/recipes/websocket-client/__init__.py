@@ -5,12 +5,6 @@ from pythonforandroid.toolchain import Recipe
 #     copy the 'websocket' directory into your app directory to force inclusion.
 #
 # see my example at https://github.com/debauchery1st/example_kivy_websocket-recipe
-#
-# If you see errors relating to 'SSL not available' ensure you have the package backports.ssl-match-hostname
-# in the buildozer requirements, since Kivy targets python 2.7.x
-#
-# You may also need sslopt={"cert_reqs": ssl.CERT_NONE} as a parameter to ws.run_forever() if you get an error relating to
-# host verification
 
 
 class WebSocketClient(Recipe):
@@ -24,6 +18,5 @@ class WebSocketClient(Recipe):
 
     depends = ['kivy', 'python2', 'android', 'pyjnius',
                'cryptography', 'pyasn1', 'pyopenssl']
-
 
 recipe = WebSocketClient()

@@ -1,53 +1,61 @@
-from pythonforandroid.toolchain import Recipe, shprint, info
-from pythonforandroid.util import ensure_dir, current_directory
-from os.path import join, exists
-import sh
 
-BUILD_SUBDIR = 'native-build'
+from pythonforandroid.toolchain import Recipe, shprint, current_directory, info, warning
+from os.path import join, exists
+from os import chdir
+import sh
 
 
 class Hostpython3Recipe(Recipe):
-    version = '3.7.1'
-    url = 'https://www.python.org/ftp/python/{version}/Python-{version}.tgz'
+    version = '3.5'
+    # url = 'http://python.org/ftp/python/{version}/Python-{version}.tgz'
+    url = 'https://github.com/crystax/android-vendor-python-3-5/archive/master.zip'
     name = 'hostpython3'
 
-    conflicts = ['hostpython2', 'hostpython3crystax']
+    conflicts = ['hostpython2']
 
-    def get_build_container_dir(self, arch=None):
-        choices = self.check_recipe_choices()
-        dir_name = '-'.join([self.name] + choices)
-        return join(self.ctx.build_dir, 'other_builds', dir_name, 'desktop')
-
-    def get_build_dir(self, arch=None):
-        # Unlike other recipes, the hostpython build dir doesn't depend on the target arch
-        return join(self.get_build_container_dir(), self.name)
-
-    def get_path_to_python(self):
-        return join(self.get_build_dir(), BUILD_SUBDIR)
+    # def prebuild_armeabi(self):
+    #     # Override hostpython Setup?
+    #     shprint(sh.cp, join(self.get_recipe_dir(), 'Setup'),
+    #             join(self.get_build_dir('armeabi'), 'Modules', 'Setup'))
 
     def build_arch(self, arch):
-        recipe_build_dir = self.get_build_dir(arch.arch)
+        # AND: Should use an i386 recipe system
+        warning('Running hostpython build. Arch is armeabi! '
+                'This is naughty, need to fix the Arch system!')
 
-        # Create a subdirectory to actually perform the build
-        build_dir = join(recipe_build_dir, BUILD_SUBDIR)
-        ensure_dir(build_dir)
+        # AND: Fix armeabi again
+        with current_directory(self.get_build_dir(arch.arch)):
 
-        if not exists(join(build_dir, 'python')):
-            with current_directory(recipe_build_dir):
-                # Configure the build
-                with current_directory(build_dir):
-                    if not exists('config.status'):
-                        shprint(sh.Command(join(recipe_build_dir, 'configure')))
+            if exists('hostpython'):
+                info('hostpython already exists, skipping build')
+                self.ctx.hostpython = join(self.get_build_dir('armeabi'),
+                                           'hostpython')
+                self.ctx.hostpgen = join(self.get_build_dir('armeabi'),
+                                         'hostpgen')
+                return
+            
+            configure = sh.Command('./configure')
 
-                # Create the Setup file. This copying from Setup.dist
-                # seems to be the normal and expected procedure.
-                shprint(sh.cp, join('Modules', 'Setup.dist'), join(build_dir, 'Modules', 'Setup'))
+            shprint(configure)
+            shprint(sh.make, '-j5', 'BUILDPYTHON=hostpython', 'hostpython',
+                    'PGEN=Parser/hostpgen', 'Parser/hostpgen')
 
-                result = shprint(sh.make, '-C', build_dir)
-        else:
-            info('Skipping hostpython3 build as it has already been completed')
+            shprint(sh.mv, join('Parser', 'hostpgen'), 'hostpgen')
 
-        self.ctx.hostpython = join(build_dir, 'python')
+            # if exists('python.exe'):
+            #     shprint(sh.mv, 'python.exe', 'hostpython')
+            # elif exists('python'):
+            #     shprint(sh.mv, 'python', 'hostpython')
+            if exists('hostpython'):
+                pass  # The above commands should automatically create
+                      # the hostpython binary, unlike with python2
+            else:
+                warning('Unable to find the python executable after '
+                        'hostpython build! Exiting.')
+                exit(1)
+
+        self.ctx.hostpython = join(self.get_build_dir(arch.arch), 'hostpython')
+        self.ctx.hostpgen = join(self.get_build_dir(arch.arch), 'hostpgen')
 
 
 recipe = Hostpython3Recipe()

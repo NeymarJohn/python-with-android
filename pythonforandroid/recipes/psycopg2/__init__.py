@@ -1,5 +1,4 @@
-from pythonforandroid.recipe import PythonRecipe
-from pythonforandroid.toolchain import current_directory, shprint
+from pythonforandroid.toolchain import PythonRecipe, current_directory, shprint
 import sh
 
 
@@ -38,6 +37,5 @@ class Psycopg2Recipe(PythonRecipe):
             shprint(hostpython, 'setup.py', 'install', '-O2',
                     '--root={}'.format(self.ctx.get_python_install_dir()),
                     '--install-lib=lib/python2.7/site-packages', _env=env)
-
 
 recipe = Psycopg2Recipe()
