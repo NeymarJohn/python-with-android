@@ -2,6 +2,7 @@ from os.path import (join, dirname, isdir, splitext, basename)
 from os import listdir
 import sh
 import glob
+import json
 import importlib
 
 from pythonforandroid.logger import (warning, shprint, info, logger,
@@ -101,10 +102,21 @@ class Bootstrap(object):
                 fileh.write('target=android-{}'.format(self.ctx.android_api))
 
     def prepare_dist_dir(self, name):
+        # self.dist_dir = self.get_dist_dir(name)
         ensure_dir(self.dist_dir)
 
     def run_distribute(self):
-        self.distribution.save_info(self.dist_dir)
+        # print('Default bootstrap being used doesn\'t know how '
+        #       'to distribute...failing.')
+        # exit(1)
+        with current_directory(self.dist_dir):
+            info('Saving distribution info')
+            with open('dist_info.json', 'w') as fileh:
+                json.dump({'dist_name': self.ctx.dist_name,
+                           'bootstrap': self.ctx.bootstrap.name,
+                           'archs': [arch.arch for arch in self.ctx.archs],
+                           'recipes': self.ctx.recipe_build_order + self.ctx.python_modules},
+                          fileh)
 
     @classmethod
     def list_bootstraps(cls):
@@ -242,15 +254,9 @@ class Bootstrap(object):
             warning('Can\'t find strip in PATH...')
             return
         strip = sh.Command(strip)
-
-        if self.ctx.python_recipe.name == 'python2':
-            filens = shprint(sh.find, join(self.dist_dir, 'private'),
-                             join(self.dist_dir, 'libs'),
-                             '-iname', '*.so', _env=env).stdout.decode('utf-8')
-        else:
-            filens = shprint(sh.find, join(self.dist_dir, '_python_bundle', '_python_bundle', 'modules'),
-                             join(self.dist_dir, 'libs'),
-                             '-iname', '*.so', _env=env).stdout.decode('utf-8')
+        filens = shprint(sh.find, join(self.dist_dir, 'private'),
+                         join(self.dist_dir, 'libs'),
+                         '-iname', '*.so', _env=env).stdout.decode('utf-8')
         logger.info('Stripping libraries in private dir')
         for filen in filens.split('\n'):
             try:
