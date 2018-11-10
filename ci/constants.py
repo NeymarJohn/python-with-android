@@ -44,6 +44,10 @@ BROKEN_RECIPES_PYTHON2 = set([
     'm2crypto',
     'netifaces',
     'Pillow',
+    # requires autoconf system dependency on host
+    # https://api.travis-ci.org/v3/job/450538715/log.txt
+    'protobuf_cpp',
+    'cffi',
     # https://github.com/kivy/python-for-android/issues/1405
     'psycopg2',
     'pygame',
