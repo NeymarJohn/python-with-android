@@ -8,14 +8,9 @@ possible to use normal multiprocessing on Android. Services are also
 the only way to run code when your app is not currently opened by the user.
 
 Services must be declared when building your APK. Each one
-will have its own main.py file with the Python script to be run.
-Please note that python-for-android explicitly runs services as separated
-processes by having a colon ":" in the beginning of the name assigned to
-the ``android:process`` attribute of the ``AndroidManifest.xml`` file.
-This is not the default behavior, see `Android service documentation
-<https://developer.android.com/guide/topics/manifest/service-element>`__.
-You can communicate with the service process from your app using e.g.
-`osc <https://pypi.python.org/pypi/python-osc>`__ or (a heavier option)
+will have its own main.py file with the Python script to be run. You
+can communicate with the service process from your app using e.g. `osc
+<https://pypi.python.org/pypi/python-osc>`__ or (a heavier option)
 `twisted <https://twistedmatrix.com/trac/>`__.
 
 Service creation
@@ -68,55 +63,25 @@ code), you must use PyJNIus to interact with the java class
 python-for-android creates for each one, as follows::
 
     from jnius import autoclass
-    service = autoclass('your.package.domain.package.name.ServiceMyservice')
+    service = autoclass('your.package.name.ServiceMyservice')
     mActivity = autoclass('org.kivy.android.PythonActivity').mActivity
     argument = ''
     service.start(mActivity, argument)
 
-Here, ``your.package.domain.package.name`` refers to the package identifier
-of your APK.
-
-If you are using buildozer, the identifier is set by the ``package.name``
-and ``package.domain`` values in your buildozer.spec file.
-The name of the service is ``ServiceMyservice``, where ``Myservice``
-is the name specied by one of the ``services`` values, but with the first
-letter upper case. 
-
-If you are using python-for-android directly, the identifier is set by the ``--package``
-argument to python-for-android. The name of the service is ``ServiceMyservice``,
-where ``Myservice`` is the identifier that was previously passed to the ``--service``
-argument, but with the first letter upper case. You must also pass the
+Here, ``your.package.name`` refers to the package identifier of your
+APK as set by the ``--package`` argument to python-for-android, and
+the name of the service is ``ServiceYourservicename``, in which
+``Yourservicename`` is the identifier passed to the ``--service``
+argument with the first letter upper case. You must also pass the
 ``argument`` parameter even if (as here) it is an empty string. If you
 do pass it, the service can make use of this argument.
-
-The service argument is made available to your service via the
-'PYTHON_SERVICE_ARGUMENT' environment variable. It is exposed as a simple
-string, so if you want to pass in multiple values, we would recommend using
-the json module to encode and decode more complex data.
-::
-
-    from os import environ
-    argument = environ.get('PYTHON_SERVICE_ARGUMENT', '')
 
 Services support a range of options and interactions not yet
 documented here but all accessible via calling other methods of the
 ``service`` reference.
 
-.. note::
-
-    The app root directory for Python imports will be in the app
-    root folder even if the service file is in a subfolder. To import from
-    your service folder you must use e.g.  ``import service.module``
-    instead of ``import module``, if the service file is in the
-    ``service/`` folder.
-
-Service auto-restart
-~~~~~~~~~~~~~~~~~~~~
-
-It is possible to make services restart automatically when they exit by
-calling ``setAutoRestartService(True)`` on the service object.
-The call to this method should be done within the service code::
-
-    from jnius import autoclass
-    PythonService = autoclass('org.kivy.android.PythonService')
-    PythonService.mService.setAutoRestartService(True)
+.. note:: The app root directory for Python imports will be in the app
+root folder even if the service file is in a subfolder. To import from
+your service folder you must use e.g.  ``import service.module``
+instead of ``import module``, if the service file is in the
+``service/`` folder.

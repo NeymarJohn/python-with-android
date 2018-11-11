@@ -1,5 +1,4 @@
-from pythonforandroid.recipe import PythonRecipe
-
+from pythonforandroid.toolchain import PythonRecipe
 
 class CherryPyRecipe(PythonRecipe):
     version = '5.1.0'
@@ -7,6 +6,5 @@ class CherryPyRecipe(PythonRecipe):
     depends = ['hostpython2', 'setuptools']
     site_packages_name = 'cherrypy'
     call_hostpython_via_targetpython = False
-
 
 recipe = CherryPyRecipe()

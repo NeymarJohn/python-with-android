@@ -1,15 +1,24 @@
-from pythonforandroid.recipe import CythonRecipe
+
+import glob
+from pythonforandroid.toolchain import (
+    CythonRecipe,
+    Recipe,
+    current_directory,
+    info,
+    shprint,
+)
+from os.path import join
+import sh
 
 
 class TwistedRecipe(CythonRecipe):
-    version = '17.9.0'
+    version = '16.0.0'
     url = 'https://github.com/twisted/twisted/archive/twisted-{version}.tar.gz'
 
-    depends = ['setuptools', 'zope_interface', 'incremental', 'constantly']
-    patches = ['incremental.patch']
+    depends = ['setuptools', 'zope_interface']
 
     call_hostpython_via_targetpython = False
-    install_in_hostpython = False
+    install_in_hostpython = True
 
     def prebuild_arch(self, arch):
         super(TwistedRecipe, self).prebuild_arch(arch)
@@ -24,6 +33,5 @@ class TwistedRecipe(CythonRecipe):
             env['BUILDLIB_PATH'],
         ])
         return env
-
 
 recipe = TwistedRecipe()

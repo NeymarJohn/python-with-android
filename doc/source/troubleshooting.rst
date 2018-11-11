@@ -10,8 +10,8 @@ Add the ``--debug`` option to any python-for-android command to see
 full debug output including the output of all the external tools used
 in the compilation and packaging steps.
 
-If reporting a problem by email or Discord, it is usually helpful to
-include this full log, e.g. via a `pastebin
+If reporting a problem by email or irc, it is usually helpful to
+include this full log, via e.g. a `pastebin
 <http://paste.ubuntu.com/>`_ or `Github gist
 <https://gist.github.com/>`_.
 
@@ -23,7 +23,7 @@ get help with any problems using the same channels as Kivy itself:
 
 - by email to the `kivy-users Google group
   <https://groups.google.com/forum/#!forum/kivy-users>`_
-- on `#support Discord channel <https://chat.kivy.org/>`_
+- by irc in the #kivy room at irc.freenode.net
   
 If you find a bug, you can also post an issue on the
 `python-for-android Github page
@@ -153,13 +153,6 @@ Exception in thread "main" java.lang.UnsupportedClassVersionError: com/android/d
 This occurs due to a java version mismatch, it should be fixed by
 installing Java 8 (e.g. the openjdk-8-jdk package on Ubuntu).
 
-java.lang.NoClassDefFoundError: sun/misc/BASE64Encoder
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Also make sure you're running Java 8, on OS X::
-
-    brew cask install java8
-
 JNI DETECTED ERROR IN APPLICATION: static jfieldID 0x0000000 not valid for class java.lang.Class<org.renpy.android.PythonActivity>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -167,21 +160,3 @@ This error appears in the logcat log if you try to access
 ``org.renpy.android.PythonActivity`` from within the new toolchain. To
 fix it, change your code to reference
 ``org.kivy.android.PythonActivity`` instead.
-
-websocket-client: if you see errors relating to 'SSL not available'
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Ensure you have the package backports.ssl-match-hostname in the buildozer requirements, since Kivy targets python 2.7.x
- 
-You may also need sslopt={"cert_reqs": ssl.CERT_NONE} as a parameter to ws.run_forever() if you get an error relating to host verification
-
-Requested API target 19 is not available, install it with the SDK android tool
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This means that your SDK is missing the required platform tools. You
-need to install the ``platforms;android-19`` package in your SDK,
-using the ``android`` or ``sdkmanager`` tools (depending on SDK
-version).
-
-If using buildozer this should be done automatically, but as a
-workaround you can run these from
-``~/.buildozer/android/platform/android-sdk-20/tools/android``.

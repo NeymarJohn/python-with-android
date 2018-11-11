@@ -1,15 +1,15 @@
 
-from pythonforandroid.recipe import PythonRecipe
+from pythonforandroid.toolchain import PythonRecipe, shprint
+import sh
 
 
 class FlaskRecipe(PythonRecipe):
-    # The webserver of 'master' seems to fail
-    # after a little while on Android, so use
-    # 0.10.1 at least for now
-    version = '0.10.1'
+    version = '0.10.1'  # The webserver of 'master' seems to fail
+                        # after a little while on Android, so use
+                        # 0.10.1 at least for now
     url = 'https://github.com/pallets/flask/archive/{version}.zip'
 
-    depends = [('python2', 'python3crystax'), 'setuptools', 'genericndkbuild']
+    depends = [('python2', 'python3crystax'), 'setuptools']
 
     python_depends = ['jinja2', 'werkzeug', 'markupsafe', 'itsdangerous', 'click']
 

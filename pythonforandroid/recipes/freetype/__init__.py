@@ -1,8 +1,9 @@
 
-from pythonforandroid.toolchain import Recipe, current_directory, shprint
+from pythonforandroid.toolchain import Recipe, shprint, current_directory, ArchARM
 from os.path import exists, join, realpath
+from os import uname
+import glob
 import sh
-
 
 class FreetypeRecipe(Recipe):
 

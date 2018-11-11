@@ -1,7 +1,8 @@
-from os.path import (join, dirname, isdir, splitext, basename)
-from os import listdir
+from os.path import (join, dirname, isdir, splitext, basename, realpath)
+from os import listdir, mkdir
 import sh
 import glob
+import json
 import importlib
 
 from pythonforandroid.logger import (warning, shprint, info, logger,
@@ -26,7 +27,7 @@ class Bootstrap(object):
     dist_name = None
     distribution = None
 
-    recipe_depends = ['sdl2']
+    recipe_depends = []
 
     can_be_chosen_automatically = True
     '''Determines whether the bootstrap can be chosen as one that
@@ -101,10 +102,21 @@ class Bootstrap(object):
                 fileh.write('target=android-{}'.format(self.ctx.android_api))
 
     def prepare_dist_dir(self, name):
+        # self.dist_dir = self.get_dist_dir(name)
         ensure_dir(self.dist_dir)
 
     def run_distribute(self):
-        self.distribution.save_info(self.dist_dir)
+        # print('Default bootstrap being used doesn\'t know how '
+        #       'to distribute...failing.')
+        # exit(1)
+        with current_directory(self.dist_dir):
+            info('Saving distribution info')
+            with open('dist_info.json', 'w') as fileh:
+                json.dump({'dist_name': self.ctx.dist_name,
+                           'bootstrap': self.ctx.bootstrap.name,
+                           'archs': [arch.arch for arch in self.ctx.archs],
+                           'recipes': self.ctx.recipe_build_order + self.ctx.python_modules},
+                          fileh)
 
     @classmethod
     def list_bootstraps(cls):
@@ -138,14 +150,9 @@ class Bootstrap(object):
                         ok = False
                         break
                 for recipe in recipes:
-                    try:
-                        recipe = Recipe.get_recipe(recipe, ctx)
-                    except IOError:
-                        conflicts = []
-                    else:
-                        conflicts = recipe.conflicts
+                    recipe = Recipe.get_recipe(recipe, ctx)
                     if any([conflict in possible_dependencies
-                            for conflict in conflicts]):
+                            for conflict in recipe.conflicts]):
                         ok = False
                         break
                 if ok:
@@ -166,6 +173,8 @@ class Bootstrap(object):
         This is the only way you should access a bootstrap class, as
         it sets the bootstrap directory correctly.
         '''
+        # AND: This method will need to check user dirs, and access
+        # bootstraps in a slightly different way
         if name is None:
             return None
         if not hasattr(cls, 'bootstraps'):
@@ -181,21 +190,20 @@ class Bootstrap(object):
         bootstrap.ctx = ctx
         return bootstrap
 
-    def distribute_libs(self, arch, src_dirs, wildcard='*', dest_dir="libs"):
+    def distribute_libs(self, arch, src_dirs, wildcard='*'):
         '''Copy existing arch libs from build dirs to current dist dir.'''
         info('Copying libs')
-        tgt_dir = join(dest_dir, arch.arch)
+        tgt_dir = join('libs', arch.arch)
         ensure_dir(tgt_dir)
         for src_dir in src_dirs:
             for lib in glob.glob(join(src_dir, wildcard)):
                 shprint(sh.cp, '-a', lib, tgt_dir)
 
-    def distribute_javaclasses(self, javaclass_dir, dest_dir="src"):
+    def distribute_javaclasses(self, javaclass_dir):
         '''Copy existing javaclasses from build dir to current dist dir.'''
         info('Copying java files')
-        ensure_dir(dest_dir)
         for filename in glob.glob(javaclass_dir):
-            shprint(sh.cp, '-a', filename, dest_dir)
+            shprint(sh.cp, '-a', filename, 'src')
 
     def distribute_aars(self, arch):
         '''Process existing .aar bundles and copy to current dist dir.'''
@@ -242,15 +250,9 @@ class Bootstrap(object):
             warning('Can\'t find strip in PATH...')
             return
         strip = sh.Command(strip)
-
-        if self.ctx.python_recipe.name == 'python2':
-            filens = shprint(sh.find, join(self.dist_dir, 'private'),
-                             join(self.dist_dir, 'libs'),
-                             '-iname', '*.so', _env=env).stdout.decode('utf-8')
-        else:
-            filens = shprint(sh.find, join(self.dist_dir, '_python_bundle', '_python_bundle', 'modules'),
-                             join(self.dist_dir, 'libs'),
-                             '-iname', '*.so', _env=env).stdout.decode('utf-8')
+        filens = shprint(sh.find, join(self.dist_dir, 'private'),
+                         join(self.dist_dir, 'libs'),
+                         '-iname', '*.so', _env=env).stdout.decode('utf-8')
         logger.info('Stripping libraries in private dir')
         for filen in filens.split('\n'):
             try:
