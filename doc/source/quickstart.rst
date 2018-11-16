@@ -38,7 +38,7 @@ Installation
 Installing p4a
 ~~~~~~~~~~~~~~
 
-p4a is now available on on Pypi, so you can install it using pip::
+p4a is now available on Pypi, so you can install it using pip::
 
     pip install python-for-android
 
@@ -61,13 +61,15 @@ p4a has several dependencies that must be installed:
 - unzip
 - virtualenv (can be installed via pip)
 - ccache (optional)
+- autoconf (for ffpyplayer_codecs recipe)
+- libtool (for ffpyplayer_codecs recipe)
 
 On recent versions of Ubuntu and its derivatives you may be able to
 install most of these with::
 
     sudo dpkg --add-architecture i386
     sudo apt-get update
-    sudo apt-get install -y build-essential git zlib1g-dev python2.7 python2.7-dev libncurses5:i386 libstdc++6:i386 zlib1g:i386 openjdk-7-jdk unzip ant ccache
+    sudo apt-get install -y build-essential ccache git zlib1g-dev python2.7 python2.7-dev libncurses5:i386 libstdc++6:i386 zlib1g:i386 openjdk-7-jdk unzip ant ccache autoconf libtool
 
 On Arch Linux (64 bit) you should be able to run the following to
 install most of the dependencies (note: this list may not be
@@ -82,23 +84,47 @@ Installing Android SDK
 
 You need to download and unpack the Android SDK and NDK to a directory (let's say $HOME/Documents/):
 
-- `Android SDK <https://developer.android.com/sdk/index.html#Other>`_
+- `Android SDK <https://developer.android.com/studio/index.html>`_
 - `Android NDK <https://developer.android.com/ndk/downloads/index.html>`_
+
+For the Android SDK, you can download 'just the command line
+tools'. When you have extracted these you'll see only a directory
+named ``tools``, and you will need to run extra commands to install
+the SDK packages needed. 
+
+For Android NDK, note that modern releases will only work on a 64-bit
+operating system. If you are using a 32-bit distribution (or hardware),
+the latest useable NDK version is r10e, which can be downloaded here:
+
+- `Legacy 32-bit Linux NDK r10e <http://dl.google.com/android/ndk/android-ndk-r10e-linux-x86.bin>`_
+
+First, install a platform to target (you can also replace ``19`` with
+a different platform number, this will be used again later)::
+
+  $SDK_DIR/tools/bin/sdkmanager "platforms;android-19"
+
+Second, install the build-tools. You can use
+``$SDK_DIR/tools/bin/sdkmanager --list`` to see all the
+possibilities, but 26.0.2 is the latest version at the time of writing::
+
+  $SDK_DIR/tools/bin/sdkmanager "build-tools;26.0.2"
 
 Then, you can edit your ``~/.bashrc`` or other favorite shell to include new environment variables necessary for building on android::
 
     # Adjust the paths!
     export ANDROIDSDK="$HOME/Documents/android-sdk-21"
     export ANDROIDNDK="$HOME/Documents/android-ndk-r10e"
-    export ANDROIDAPI="14"  # Minimum API version your application require
+    export ANDROIDAPI="26"  # Target API version of your application
+    export NDKAPI="19"  # Minimum supported API version of your application
     export ANDROIDNDKVER="r10e"  # Version of the NDK you installed
 
 You have the possibility to configure on any command the PATH to the SDK, NDK and Android API using:
 
-- :code:`--sdk_dir PATH` as an equivalent of `$ANDROIDSDK`
-- :code:`--ndk_dir PATH` as an equivalent of `$ANDROIDNDK`
-- :code:`--android_api VERSION` as an equivalent of `$ANDROIDAPI`
-- :code:`--ndk_ver PATH` as an equivalent of `$ANDROIDNDKVER`
+- :code:`--sdk-dir PATH` as an equivalent of `$ANDROIDSDK`
+- :code:`--ndk-dir PATH` as an equivalent of `$ANDROIDNDK`
+- :code:`--android-api VERSION` as an equivalent of `$ANDROIDAPI`
+- :code:`--ndk-api VERSION` as an equivalent of `$NDKAPI`
+- :code:`--ndk-version VERSION` as an equivalent of `$ANDROIDNDKVER`
 
 
 Usage
@@ -171,8 +197,8 @@ Getting help
 
 If something goes wrong and you don't know how to fix it, add the
 ``--debug`` option and post the output log to the `kivy-users Google
-group <https://groups.google.com/forum/#!forum/kivy-users>`__ or irc
-channel #kivy at irc.freenode.net .
+group <https://groups.google.com/forum/#!forum/kivy-users>`__ or the
+kivy `#support Discord channel <https://chat.kivy.org/>`_.
 
 See :doc:`troubleshooting` for more information.
 
