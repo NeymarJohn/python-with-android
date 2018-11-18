@@ -36,7 +36,6 @@ Contents
    apis
    troubleshooting
    launcher
-   docker
    contribute
    old_toolchain/index.rst
 

@@ -142,6 +142,8 @@ def require_prebuilt_dist(func):
                                       user_ndk_api=self.ndk_api)
         dist = self._dist
         if dist.needs_build:
+            if dist.folder_exists():  # possible if the dist is being replaced
+                dist.delete()
             info_notify('No dist exists that meets your requirements, '
                         'so one will be built.')
             build_dist_from_args(ctx, dist, args)
@@ -158,7 +160,8 @@ def dist_from_args(ctx, args):
         name=args.dist_name,
         ndk_api=args.ndk_api,
         recipes=split_argument_list(args.requirements),
-        require_perfect_match=args.require_perfect_match)
+        require_perfect_match=args.require_perfect_match,
+        allow_replace_dist=args.allow_replace_dist)
 
 
 def build_dist_from_args(ctx, dist, args):
@@ -315,6 +318,12 @@ class ToolchainCL(object):
             default=False,
             description=('Whether the dist recipes must perfectly match '
                          'those requested'))
+
+        add_boolean_option(
+            generic_parser, ["allow-replace-dist"],
+            default=True,
+            description='Whether existing dist names can be automatically replaced'
+            )
 
         generic_parser.add_argument(
             '--local-recipes', '--local_recipes',
@@ -816,14 +825,6 @@ class ToolchainCL(object):
                 env["ANDROID_HOME"] = self.ctx.sdk_dir
 
                 gradlew = sh.Command('./gradlew')
-                if exists('/usr/bin/dos2unix'):
-                    # .../dists/bdisttest_python3/gradlew
-                    # .../build/bootstrap_builds/sdl2-python3crystax/gradlew
-                    # if docker on windows, gradle contains CRLF
-                    output = shprint(
-                        sh.Command('dos2unix'), gradlew._path,
-                        _tail=20, _critical=True, _env=env
-                    )
                 if args.build_mode == "debug":
                     gradle_task = "assembleDebug"
                 elif args.build_mode == "release":
@@ -929,10 +930,11 @@ class ToolchainCL(object):
 
     def delete_dist(self, _args):
         dist = self._dist
-        if dist.needs_build:
+        if not dist.folder_exists():
             info('No dist exists that matches your specifications, '
                  'exiting without deleting.')
-        shutil.rmtree(dist.dist_dir)
+            return
+        dist.delete()
 
     def sdk_tools(self, args):
         """Runs the android binary from the detected SDK directory, passing
