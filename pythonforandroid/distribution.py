@@ -5,7 +5,6 @@ import json
 from pythonforandroid.logger import (info, info_notify, warning,
                                      Err_Style, Err_Fore, error)
 from pythonforandroid.util import current_directory
-from shutil import rmtree
 
 
 class Distribution(object):
@@ -47,8 +46,7 @@ class Distribution(object):
                          ndk_api=None,
                          force_build=False,
                          extra_dist_dirs=[],
-                         require_perfect_match=False,
-                         allow_replace_dist=True):
+                         require_perfect_match=False):
         '''Takes information about the distribution, and decides what kind of
         distribution it will be.
 
@@ -72,10 +70,6 @@ class Distribution(object):
         require_perfect_match : bool
             If True, will only match distributions with precisely the
             correct set of recipes.
-        allow_replace_dist : bool
-            If True, will allow an existing dist with the specified
-            name but incompatible requirements to be overwritten by
-            a new one with the current requirements.
         '''
 
         existing_dists = Distribution.get_distributions(ctx)
@@ -129,7 +123,7 @@ class Distribution(object):
         # If there was a name match but we didn't already choose it,
         # then the existing dist is incompatible with the requested
         # configuration and the build cannot continue
-        if name_match_dist is not None and not allow_replace_dist:
+        if name_match_dist is not None:
             error('Asked for dist with name {name} with recipes ({req_recipes}) and '
                   'NDK API {req_ndk_api}, but a dist '
                   'with this name already exists and has either incompatible recipes '
@@ -159,12 +153,6 @@ class Distribution(object):
         dist.ndk_api = ctx.ndk_api
 
         return dist
-
-    def folder_exists(self):
-        return exists(self.dist_dir)
-
-    def delete(self):
-        rmtree(self.dist_dir)
 
     @classmethod
     def get_distributions(cls, ctx, extra_dist_dirs=[]):
