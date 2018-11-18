@@ -38,6 +38,14 @@ BROKEN_RECIPES_PYTHON2 = set([
     'm2crypto',
     'netifaces',
     'Pillow',
+    # depends on cffi that still seems to have compilation issues
+    'protobuf_cpp',
+    'xeddsa',
+    'x3dh',
+    'pynacl',
+    'doubleratchet',
+    'omemo',
+    'cryptography',
     # https://github.com/kivy/python-for-android/issues/1405
     'psycopg2',
     'pygame',
@@ -55,16 +63,7 @@ BROKEN_RECIPES_PYTHON2 = set([
     'zope',
 ])
 BROKEN_RECIPES_PYTHON3_CRYSTAX = set([
-    # not yet python3crystax compatible
-    'apsw', 'atom', 'boost', 'brokenrecipe', 'cdecimal', 'cherrypy',
-    'coverage', 'dateutil', 'enaml', 'ethash', 'kiwisolver', 'libgeos',
-    'libnacl', 'libsodium', 'libtorrent', 'libtribler', 'libzbar', 'libzmq',
-    'm2crypto', 'mysqldb', 'ndghttpsclient', 'pil', 'pycrypto', 'pyethereum',
-    'pygame', 'pyleveldb', 'pyproj', 'pyzmq', 'regex', 'shapely',
-    'simple-crypt', 'twsisted', 'vispy', 'websocket-client', 'zbar',
-    'zeroconf', 'zope',
-    # https://github.com/kivy/python-for-android/issues/550
-    'audiostream',
+    'brokenrecipe',
     # enum34 is not compatible with Python 3.6 standard library
     # https://stackoverflow.com/a/45716067/185510
     'enum34',
