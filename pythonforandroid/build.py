@@ -12,7 +12,7 @@ import sh
 from pythonforandroid.util import (ensure_dir, current_directory)
 from pythonforandroid.logger import (info, warning, error, info_notify,
                                      Err_Fore, info_main, shprint)
-from pythonforandroid.archs import ArchARM, ArchARMv7_a, ArchAarch_64, Archx86
+from pythonforandroid.archs import ArchARM, ArchARMv7_a, ArchAarch_64, Archx86, Archx86_64
 from pythonforandroid.recipe import Recipe
 
 DEFAULT_ANDROID_API = 15
@@ -130,7 +130,7 @@ class Context(object):
     def ndk_api(self):
         '''The API number compile against'''
         if self._ndk_api is None:
-            raise ValueError('Tried to access ndk_api_api but it has not '
+            raise ValueError('Tried to access ndk_api but it has not '
                              'been set - this should not happen, something '
                              'went wrong!')
         return self._ndk_api
@@ -501,6 +501,7 @@ class Context(object):
             ArchARM(self),
             ArchARMv7_a(self),
             Archx86(self),
+            Archx86_64(self),
             ArchAarch_64(self),
             )
 
