@@ -183,7 +183,8 @@ def build_dist_from_args(ctx, dist, args):
 
     ctx.dist_name = bs.distribution.name
     ctx.prepare_bootstrap(bs)
-    ctx.prepare_dist(ctx.dist_name)
+    if dist.needs_build:
+        ctx.prepare_dist(ctx.dist_name)
 
     build_recipes(build_order, python_modules, ctx)
 
