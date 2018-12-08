@@ -17,16 +17,27 @@ This option builds Python 2.7.2 for your selected Android
 architecture. There are no special requirements, all the building is
 done locally.
 
-The python2 build is also the way python-for-android originally
-worked, even in the old toolchain.
-
 
 python3
 ~~~~~~~
 
-.. warning::
-   Python3 support is experimental, and some of these details
-   may change as it is improved and fully stabilised.
+Python3 is supported in two ways. The default method uses CPython 3.7+
+and works with any recent version of the Android NDK.
+
+Select Python 3 by adding it to your requirements,
+e.g. ``--requirements=python3``.
+
+.. note:: ctypes is not included automatically, if you would like to use it
+          then add libffi to your requirements,
+          e.g. ``--requirements=kivy,libffi,python3``.
+
+
+CrystaX python3
+###############
+
+.. warning:: python-for-android originally supported Python 3 using the CrystaX
+             NDK. This support is now being phased out as CrystaX is no longer
+             actively developed.
 
 .. note:: You must manually download the `CrystaX NDK
    <https://www.crystax.net/android/ndk>`__ and tell
@@ -41,11 +52,6 @@ Google's official NDK which includes many improvements. You
 *must* use the CrystaX NDK 10.3.0 or higher when building with
 python3. You can get it `here
 <https://www.crystax.net/en/download>`__.
-
-The python3crystax build is handled quite differently to python2 so
-there may be bugs or surprising behaviours. If you come across any,
-feel free to `open an issue
-<https://github.com/kivy/python-for-android>`__.
 
 .. _bootstrap_build_options:
 
@@ -85,7 +91,7 @@ The sdl2 bootstrap supports the following additional command line
 options (this list may not be exhaustive):
 
 - ``--private``: The directory containing your project files.
-- ``--package``: The Java package name for your project. Choose e.g. ``org.example.yourapp``.
+- ``--package``: The Java package name for your project. e.g. ``org.example.yourapp``.
 - ``--name``: The app name.
 - ``--version``: The version number.
 - ``--orientation``: Usually one of ``portait``, ``landscape``,
@@ -95,7 +101,7 @@ options (this list may not be exhaustive):
   ``android:screenOrientation`` in the `Android documentation
   <https://developer.android.com/guide/topics/manifest/activity-element.html>`__.
 - ``--icon``: A path to the png file to use as the application icon.
-- ``-- permission``: A permission name for the app,
+- ``--permission``: A permission name for the app,
   e.g. ``--permission VIBRATE``. For multiple permissions, add
   multiple ``--permission`` arguments.
 - ``--meta-data``: Custom key=value pairs to add in the application metadata.
@@ -145,7 +151,7 @@ started), it will instead display a loading screen until the server is
 ready.
 
 - ``--private``: The directory containing your project files.
-- ``--package``: The Java package name for your project. Choose e.g. ``org.example.yourapp``.
+- ``--package``: The Java package name for your project. e.g. ``org.example.yourapp``.
 - ``--name``: The app name.
 - ``--version``: The version number.
 - ``--orientation``: Usually one of ``portait``, ``landscape``,
@@ -206,7 +212,7 @@ options (this list may not be exhaustive):
 - ``--dir``: The directory containing your project files if you want
   them to be unpacked to the external storage directory rather than
   the app private directory.
-- ``--package``: The Java package name for your project. Choose e.g. ``org.example.yourapp``.
+- ``--package``: The Java package name for your project. e.g. ``org.example.yourapp``.
 - ``--name``: The app name.
 - ``--version``: The version number.
 - ``--orientation``: One of ``portait``, ``landscape`` or ``sensor``

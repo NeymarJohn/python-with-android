@@ -4,6 +4,7 @@ from os import walk
 from os.path import join, dirname, sep
 import os
 import glob
+import re
 
 # NOTE: All package data should also be set in MANIFEST.in
 
@@ -15,14 +16,12 @@ package_data = {'': ['*.tmpl',
 data_files = []
 
 
-if os.name == 'nt':
-    install_reqs = ['appdirs', 'colorama>=0.3.3', 'jinja2',
-                        'six']
-else:
-    # don't use sh after 1.12.5, we have performance issues
-    # https://github.com/amoffat/sh/issues/378
-    install_reqs = ['appdirs', 'colorama>=0.3.3', 'sh>=1.10,<1.12.5', 'jinja2',
-                        'six']
+# must be a single statement since buildozer is currently parsing it, refs:
+# https://github.com/kivy/buildozer/issues/722
+install_reqs = [
+    'appdirs', 'colorama>=0.3.3', 'jinja2', 'six',
+    'enum34; python_version<"3.4"', 'sh>=1.10; sys_platform!="nt"'
+]
 
 # By specifying every file manually, package_data will be able to
 # include them in binary distributions. Note that we have to add
@@ -45,7 +44,7 @@ recursively_include(package_data, 'pythonforandroid/recipes',
 recursively_include(package_data, 'pythonforandroid/bootstraps',
                     ['*.properties', '*.xml', '*.java', '*.tmpl', '*.txt', '*.png',
                      '*.mk', '*.c', '*.h', '*.py', '*.sh', '*.jpg', '*.aidl',
-                     '*.gradle', ])
+                     '*.gradle', '.gitkeep', 'gradlew*', '*.jar', ])
 recursively_include(package_data, 'pythonforandroid/bootstraps',
                     ['sdl-config', ])
 recursively_include(package_data, 'pythonforandroid/bootstraps/webview',
@@ -53,9 +52,31 @@ recursively_include(package_data, 'pythonforandroid/bootstraps/webview',
 recursively_include(package_data, 'pythonforandroid',
                     ['liblink', 'biglink', 'liblink.sh'])
 
+with open(join(dirname(__file__), 'README.rst')) as fileh:
+    long_description = fileh.read()
+
+init_filen = join(dirname(__file__), 'pythonforandroid', '__init__.py')
+version = None
+try:
+    with open(init_filen) as fileh:
+        lines = fileh.readlines()
+except IOError:
+    pass
+else:
+    for line in lines:
+        line = line.strip()
+        if line.startswith('__version__ = '):
+            matches = re.findall(r'["\'].+["\']', line)
+            if matches:
+                version = matches[0].strip("'").strip('"')
+                break
+if version is None:
+    raise Exception('Error: version could not be loaded from {}'.format(init_filen))
+
 setup(name='python-for-android',
-      version='0.5',
+      version=version,
       description='Android APK packager for Python scripts and apps',
+      long_description=long_description,
       author='The Kivy team',
       author_email='kivy-dev@googlegroups.com',
       url='https://github.com/kivy/python-for-android', 

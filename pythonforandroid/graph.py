@@ -1,4 +1,3 @@
-
 from copy import deepcopy
 from itertools import product
 from sys import exit
@@ -161,10 +160,12 @@ def get_recipe_order_and_bootstrap(ctx, names, bs=None):
         python_modules = []
         for name in chosen_order:
             try:
-                Recipe.get_recipe(name, ctx)
+                recipe = Recipe.get_recipe(name, ctx)
+                python_modules += recipe.python_depends
             except IOError:
                 python_modules.append(name)
             else:
                 recipes.append(name)
 
+    python_modules = list(set(python_modules))
     return recipes, python_modules, bs

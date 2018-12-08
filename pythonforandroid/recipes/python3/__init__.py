@@ -1,185 +1,238 @@
-
-from pythonforandroid.toolchain import Recipe, shprint, current_directory, ArchARM
-from os.path import exists, join
-from os import uname
+from pythonforandroid.recipe import TargetPythonRecipe, Recipe
+from pythonforandroid.toolchain import shprint, current_directory
+from pythonforandroid.logger import logger, info, error
+from pythonforandroid.util import ensure_dir, walk_valid_filens
+from os.path import exists, join, dirname
+from os import environ
 import glob
 import sh
 
-class Python3Recipe(Recipe):
-    version = '3.4.2'
-    url = 'http://python.org/ftp/python/{version}/Python-{version}.tgz'
+STDLIB_DIR_BLACKLIST = {
+    '__pycache__',
+    'test',
+    'tests',
+    'lib2to3',
+    'ensurepip',
+    'idlelib',
+    'tkinter',
+}
+
+STDLIB_FILEN_BLACKLIST = [
+    '*.pyc',
+    '*.exe',
+    '*.whl',
+]
+
+# TODO: Move to a generic location so all recipes use the same blacklist
+SITE_PACKAGES_DIR_BLACKLIST = {
+    '__pycache__',
+    'tests'
+}
+
+SITE_PACKAGES_FILEN_BLACKLIST = []
+
+
+class Python3Recipe(TargetPythonRecipe):
+    '''
+    .. note::
+        In order to build certain python modules, we need to add some extra
+        recipes to our build requirements:
+
+            - ctypes: you must add the recipe for ``libffi``.
+    '''
+    version = '3.7.1'
+    url = 'https://www.python.org/ftp/python/{version}/Python-{version}.tgz'
     name = 'python3'
 
-    depends = ['hostpython3']  
-    conflicts = ['python2']
+    depends = ['hostpython3']
+    conflicts = ['python3crystax', 'python2']
+    opt_depends = ['libffi']
 
-    def __init__(self, **kwargs):
-        super(Python3Recipe, self).__init__(**kwargs)
+    # This recipe can be built only against API 21+
+    MIN_NDK_API = 21
 
-    def prebuild_arch(self, arch):
-        build_dir = self.get_build_container_dir(arch.arch)
-        if exists(join(build_dir, '.patched')):
-            print('Python3 already patched, skipping.')
-            return
-
-        self.ctx.cython = 'cython'  # Temporary hack
-
-        # # self.apply_patch(join('patches_inclement',
-        # #                       'python-{version}-define_macro.patch'.format(version=self.version)))
-        # # self.apply_patch(join('patches_inclement',
-        # #                       'python-{version}-android-locale.patch'.format(version=self.version)))
-        # # self.apply_patch(join('patches_inclement',
-        # #                       'python-{version}-android-misc.patch'.format(version=self.version)))
-
-        # self.apply_patch(join('patches_inclement',
-        #                       'python-{version}-locale_and_android_misc.patch'.format(version=self.version)))
-        
-
-        self.apply_patch(join('patches', 'python-{version}-android-libmpdec.patch'.format(version=self.version)),
-                         arch.arch)
-        self.apply_patch(join('patches', 'python-{version}-android-locale.patch'.format(version=self.version)), arch.arch)
-        self.apply_patch(join('patches', 'python-{version}-android-misc.patch'.format(version=self.version)), arch.arch)
-        # self.apply_patch(join('patches', 'python-{version}-android-missing-getdents64-definition.patch'.format(version=self.version)), arch.arch)
-        self.apply_patch(join('patches', 'python-{version}-cross-compile.patch'.format(version=self.version)), arch.arch)
-        self.apply_patch(join('patches', 'python-{version}-python-misc.patch'.format(version=self.version)), arch.arch)
-
-        self.apply_patch(join('patches', 'python-{version}-libpymodules_loader.patch'.format(version=self.version)), arch.arch)
-        self.apply_patch('log_failures.patch', arch.arch)
-        
-
-        shprint(sh.touch, join(build_dir, '.patched'))
+    def set_libs_flags(self, env, arch):
+        '''Takes care to properly link libraries with python depending on our
+        requirements and the attribute :attr:`opt_depends`.
+        '''
+        if 'libffi' in self.ctx.recipe_build_order:
+            info('Activating flags for libffi')
+            recipe = Recipe.get_recipe('libffi', self.ctx)
+            include = ' -I' + ' -I'.join(recipe.get_include_dirs(arch))
+            ldflag = ' -L' + join(recipe.get_build_dir(arch.arch),
+                                  recipe.get_host(arch), '.libs') + ' -lffi'
+            env['CPPFLAGS'] = env.get('CPPFLAGS', '') + include
+            env['LDFLAGS'] = env.get('LDFLAGS', '') + ldflag
+        return env
 
     def build_arch(self, arch):
-        if 'sqlite' in self.ctx.recipe_build_order or 'openssl' in self.ctx.recipe_build_order:
-            print('sqlite or openssl support not yet enabled in python recipe')
+        if self.ctx.ndk_api < self.MIN_NDK_API:
+            error('Target ndk-api is {}, but the python3 recipe supports only {}+'.format(
+                self.ctx.ndk_api, self.MIN_NDK_API))
             exit(1)
 
-        hostpython_recipe = Recipe.get_recipe('hostpython3', self.ctx)
-        shprint(sh.cp, self.ctx.hostpython, self.get_build_dir(arch.arch))
-        shprint(sh.cp, self.ctx.hostpgen, self.get_build_dir(arch.arch))
-        hostpython = join(self.get_build_dir(arch.arch), 'hostpython')
-        hostpgen = join(self.get_build_dir(arch.arch), 'hostpython')
+        recipe_build_dir = self.get_build_dir(arch.arch)
 
-        if exists(join(self.get_build_dir(arch.arch), 'libpython3.4m.so')):
-            print('libpython3.4m.so already exists, skipping python build.')
-            self.ctx.hostpython = join(self.ctx.build_dir, 'python-install',
-                                       'bin', 'python.host')
+        # Create a subdirectory to actually perform the build
+        build_dir = join(recipe_build_dir, 'android-build')
+        ensure_dir(build_dir)
 
-            return
+        # TODO: Get these dynamically, like bpo-30386 does
+        sys_prefix = '/usr/local'
+        sys_exec_prefix = '/usr/local'
 
-        with current_directory(self.get_build_dir(arch.arch)):
+        # Skipping "Ensure that nl_langinfo is broken" from the original bpo-30386
 
+        platform_name = 'android-{}'.format(self.ctx.ndk_api)
 
-            hostpython_recipe = Recipe.get_recipe('hostpython3', self.ctx)
-            # shprint(sh.cp, join(hostpython_recipe.get_recipe_dir(), 'Setup'), 'Modules')
+        with current_directory(build_dir):
+            env = environ.copy()
 
-            env = ArchARM(self.ctx).get_env()
-            env["LDFLAGS"] = env["LDFLAGS"] + ' -llog'
+            # TODO: Get this information from p4a's arch system
+            android_host = arch.command_prefix
+            android_build = sh.Command(join(recipe_build_dir, 'config.guess'))().stdout.strip().decode('utf-8')
+            platform_dir = join(self.ctx.ndk_dir, 'platforms', platform_name, arch.platform_dir)
+            toolchain = '{android_host}-4.9'.format(android_host=arch.toolchain_prefix)
+            toolchain = join(self.ctx.ndk_dir, 'toolchains', toolchain, 'prebuilt', 'linux-x86_64')
 
-            # AND: Should probably move these to get_recipe_env for
-            # neatness, but the whole recipe needs tidying along these
-            # lines
-            env['HOSTARCH'] = 'arm-eabi'
-            env['BUILDARCH'] = shprint(sh.gcc, '-dumpmachine').stdout
-            # env['CFLAGS'] = ' '.join([env['CFLAGS'], '-DNO_MALLINFO'])
+            target_data = arch.command_prefix.split('-')
+            if target_data[0] == 'arm':
+                target_data[0] = 'armv7a'
+            target = '-'.join([target_data[0], 'none', target_data[1], target_data[2]])
 
-            env['HOSTARCH'] = 'arm-linux-androideabi'
-            env['BUILDARCH'] = 'x86_64-pc-linux-gnu'
+            CC = '{clang} -target {target} -gcc-toolchain {toolchain}'.format(
+                clang=join(self.ctx.ndk_dir, 'toolchains', 'llvm', 'prebuilt', 'linux-x86_64', 'bin', 'clang'),
+                target=target,
+                toolchain=toolchain)
 
-            configure = sh.Command('./configure')
+            AR = join(toolchain, 'bin', android_host) + '-ar'
+            LD = join(toolchain, 'bin', android_host) + '-ld'
+            RANLIB = join(toolchain, 'bin', android_host) + '-ranlib'
+            READELF = join(toolchain, 'bin', android_host) + '-readelf'
+            STRIP = join(toolchain, 'bin', android_host) + '-strip --strip-debug --strip-unneeded'
 
-            # AND: OFLAG isn't actually set, should it be?
-            # shprint(configure,
-            #         '--host={}'.format(env['HOSTARCH']),
-            #         '--build={}'.format(env['BUILDARCH']),
-            #         # 'OPT={}'.format(env['OFLAG']),
-            #         '--prefix={}'.format(join(self.ctx.build_dir, 'python-install')),
-            #         '--enable-shared',
-            #         '--disable-toolbox-glue',
-            #         '--disable-framefork',
-            #         _env=env)
+            env['CC'] = CC
+            env['AR'] = AR
+            env['LD'] = LD
+            env['RANLIB'] = RANLIB
+            env['READELF'] = READELF
+            env['STRIP'] = STRIP
 
-            with open('config.site', 'w') as fileh:
-                fileh.write('''
-    ac_cv_file__dev_ptmx=no
-    ac_cv_file__dev_ptc=no
-                ''')
+            env['PATH'] = '{hostpython_dir}:{old_path}'.format(
+                hostpython_dir=self.get_recipe('hostpython3', self.ctx).get_path_to_python(),
+                old_path=env['PATH'])
 
-            shprint(configure,
-                    'CROSS_COMPILE_TARGET=yes',
-                    'HOSTPYTHON={}'.format(hostpython),
-                    'CONFIG_SITE=config.site',
-                    '--prefix={}'.format(join(self.ctx.build_dir, 'python-install')),
-                    '--host={}'.format(env['HOSTARCH']),
-                    '--build={}'.format(env['BUILDARCH']),
-                    '--disable-ipv6',
-                    '--enable-shared',
-                    '--without-ensurepip',
-                    _env=env)
+            ndk_flags = ('-fPIC --sysroot={ndk_sysroot} -D__ANDROID_API__={android_api} '
+                         '-isystem {ndk_android_host}').format(
+                             ndk_sysroot=join(self.ctx.ndk_dir, 'sysroot'),
+                             android_api=self.ctx.ndk_api,
+                             ndk_android_host=join(
+                                 self.ctx.ndk_dir, 'sysroot', 'usr', 'include', android_host))
+            sysroot = join(self.ctx.ndk_dir, 'platforms', platform_name, arch.platform_dir)
+            env['CFLAGS'] = env.get('CFLAGS', '') + ' ' + ndk_flags
+            env['CPPFLAGS'] = env.get('CPPFLAGS', '') + ' ' + ndk_flags
+            env['LDFLAGS'] = env.get('LDFLAGS', '') + ' --sysroot={} -L{}'.format(sysroot, join(sysroot, 'usr', 'lib'))
 
-            # The python2 build always fails the first time, but python3 seems to work.
+            # Manually add the libs directory, and copy some object
+            # files to the current directory otherwise they aren't
+            # picked up. This seems necessary because the --sysroot
+            # setting in LDFLAGS is overridden by the other flags.
+            # TODO: Work out why this doesn't happen in the original
+            # bpo-30386 Makefile system.
+            logger.warning('Doing some hacky stuff to link properly')
+            lib_dir = join(sysroot, 'usr', 'lib')
+            if arch.arch == 'x86_64':
+                lib_dir = join(sysroot, 'usr', 'lib64')
+            env['LDFLAGS'] += ' -L{}'.format(lib_dir)
+            shprint(sh.cp, join(lib_dir, 'crtbegin_so.o'), './')
+            shprint(sh.cp, join(lib_dir, 'crtend_so.o'), './')
 
-            make = sh.Command(env['MAKE'].split(' ')[0])
-            # print('First install (expected to fail...')
-            # try:
-            #     shprint(make, '-j5', 'install', 'HOSTPYTHON={}'.format(hostpython),
-            #             'HOSTPGEN={}'.format(hostpgen),
-            #             'CROSS_COMPILE_TARGET=yes',
-            #             'INSTSONAME=libpython3.7.so',
-            #             _env=env)
-            # except sh.ErrorReturnCode_2:
-            #     print('First python3 make failed. This is expected, trying again.')
-                
+            env['SYSROOT'] = sysroot
 
-            # print('Second install (expected to work)')
-            shprint(sh.touch, 'python.exe', 'python')
-            # shprint(make, '-j5', 'install', 'HOSTPYTHON={}'.format(hostpython),
-            #         'HOSTPGEN={}'.format(hostpgen),
-            #         'CROSS_COMPILE_TARGET=yes',
-            #         'INSTSONAME=libpython3.7.so',
-            #         _env=env)
+            env = self.set_libs_flags(env, arch)
 
-            shprint(make, '-j5',
-                    'CROSS_COMPILE_TARGET=yes',
-                    'HOSTPYTHON={}'.format(hostpython),
-                    'HOSTPGEN={}'.format(hostpgen),
-                    _env=env)
+            if not exists('config.status'):
+                shprint(sh.Command(join(recipe_build_dir, 'configure')),
+                        *(' '.join(('--host={android_host}',
+                                    '--build={android_build}',
+                                    '--enable-shared',
+                                    '--disable-ipv6',
+                                    'ac_cv_file__dev_ptmx=yes',
+                                    'ac_cv_file__dev_ptc=no',
+                                    '--without-ensurepip',
+                                    'ac_cv_little_endian_double=yes',
+                                    '--prefix={prefix}',
+                                    '--exec-prefix={exec_prefix}')).format(
+                                        android_host=android_host,
+                                        android_build=android_build,
+                                        prefix=sys_prefix,
+                                        exec_prefix=sys_exec_prefix)).split(' '), _env=env)
 
-            shprint(make, '-j5', 'install',
-                    'CROSS_COMPILE_TARGET=yes',
-                    'HOSTPYTHON={}'.format(hostpython),
-                    'HOSTPGEN={}'.format(hostpgen),
-                    _env=env)
+            if not exists('python'):
+                shprint(sh.make, 'all', _env=env)
 
-            # if uname()[0] == 'Darwin':
-            #     shprint(sh.cp, join(self.get_recipe_dir(), 'patches', '_scproxy.py'),
-            #             join(self.get_build_dir(), 'Lib'))
-            #     shprint(sh.cp, join(self.get_recipe_dir(), 'patches', '_scproxy.py'),
-            #             join(self.ctx.build_dir, 'python-install', 'lib', 'python3.7'))
+            # TODO: Look into passing the path to pyconfig.h in a
+            # better way, although this is probably acceptable
+            sh.cp('pyconfig.h', join(recipe_build_dir, 'Include'))
 
-            print('Ready to copy .so for python arm')
-            shprint(sh.cp, 'libpython3.4m.so', self.ctx.libs_dir)
-            shprint(sh.cp, 'libpython3.so', self.ctx.libs_dir)
+    def include_root(self, arch_name):
+        return join(self.get_build_dir(arch_name),
+                    'Include')
 
-            print('Copying hostpython binary to targetpython folder')
-            shprint(sh.cp, self.ctx.hostpython,
-                    join(self.ctx.build_dir, 'python-install', 'bin',
-                         'python.host'))
-            self.ctx.hostpython = join(self.ctx.build_dir, 'python-install',
-                                       'bin', 'python.host')
+    def link_root(self, arch_name):
+        return join(self.get_build_dir(arch_name),
+                    'android-build')
 
+    def create_python_bundle(self, dirn, arch):
+        ndk_dir = self.ctx.ndk_dir
 
-            # reduce python?
-            for dir_name in ('test', join('json', 'tests'), 'lib-tk',
-                             join('sqlite3', 'test'), join('unittest, test'),
-                             join('lib2to3', 'tests'), join('bsddb', 'tests'),
-                             join('distutils', 'tests'), join('email', 'test'),
-                             'curses'):
-                shprint(sh.rm, '-rf', join(self.ctx.build_dir, 'python-install',
-                                           'lib', 'python3.7', dir_name))
+        # Bundle compiled python modules to a folder
+        modules_dir = join(dirn, 'modules')
+        ensure_dir(modules_dir)
 
-        # print('python3 build done, exiting for debug')
-        # exit(1)
+        modules_build_dir = join(
+            self.get_build_dir(arch.arch),
+            'android-build',
+            'build',
+            'lib.linux-arm-3.7')
+        module_filens = (glob.glob(join(modules_build_dir, '*.so')) +
+                         glob.glob(join(modules_build_dir, '*.py')))
+        for filen in module_filens:
+            shprint(sh.cp, filen, modules_dir)
+
+        # zip up the standard library
+        stdlib_zip = join(dirn, 'stdlib.zip')
+        with current_directory(join(self.get_build_dir(arch.arch), 'Lib')):
+            stdlib_filens = walk_valid_filens(
+                '.', STDLIB_DIR_BLACKLIST, STDLIB_FILEN_BLACKLIST)
+            shprint(sh.zip, stdlib_zip, *stdlib_filens)
+
+        # copy the site-packages into place
+        ensure_dir(join(dirn, 'site-packages'))
+        # TODO: Improve the API around walking and copying the files
+        with current_directory(self.ctx.get_python_install_dir()):
+            filens = list(walk_valid_filens(
+                '.', SITE_PACKAGES_DIR_BLACKLIST, SITE_PACKAGES_FILEN_BLACKLIST))
+            for filen in filens:
+                ensure_dir(join(dirn, 'site-packages', dirname(filen)))
+                sh.cp(filen, join(dirn, 'site-packages', filen))
+
+        # copy the python .so files into place
+        python_build_dir = join(self.get_build_dir(arch.arch),
+                                'android-build')
+        shprint(sh.cp,
+                join(python_build_dir,
+                     'libpython{}m.so'.format(self.major_minor_version_string)),
+                'libs/{}'.format(arch.arch))
+        shprint(sh.cp,
+                join(python_build_dir,
+                     'libpython{}m.so.1.0'.format(self.major_minor_version_string)),
+                'libs/{}'.format(arch.arch))
+
+        info('Renaming .so files to reflect cross-compile')
+        self.reduce_object_file_names(join(dirn, 'site-packages'))
+
+        return join(dirn, 'site-packages')
 
 
 recipe = Python3Recipe()
