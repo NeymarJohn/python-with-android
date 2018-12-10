@@ -87,7 +87,7 @@ class FFMpegRecipe(Recipe):
 
             # other flags:
             flags += [
-                '--enable-filter=aresample,resample,crop,adelay,volume,scale',
+                '--enable-filter=aresample,resample,crop,adelay,volume',
                 '--enable-protocol=file,http',
                 '--enable-small',
                 '--enable-hwaccels',

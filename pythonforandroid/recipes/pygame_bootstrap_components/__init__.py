@@ -9,10 +9,9 @@ class PygameJNIComponentsRecipe(BootstrapNDKRecipe):
     version = 'master'
     url = 'https://github.com/kivy/p4a-pygame-bootstrap-components/archive/{version}.zip'
     dir_name = 'bootstrap_components'
-    patches = ['jpeg-ndk15-plus.patch']
 
     def prebuild_arch(self, arch):
-        super(PygameJNIComponentsRecipe, self).prebuild_arch(arch)
+        super(PygameJNIComponentsRecipe, self).postbuild_arch(arch)
 
         info('Unpacking pygame bootstrap JNI dir components')
         with current_directory(self.get_build_container_dir(arch)):
@@ -25,10 +24,6 @@ class PygameJNIComponentsRecipe(BootstrapNDKRecipe):
                 shprint(sh.mv, dirn, './')
         info('Unpacking was successful, deleting original container dir')
         shprint(sh.rm, '-rf', self.get_build_dir(arch))
-
-    def apply_patches(self, arch, build_dir=None):
-        super(PygameJNIComponentsRecipe, self).apply_patches(
-            arch, build_dir=self.get_build_container_dir(arch.arch))
 
 
 recipe = PygameJNIComponentsRecipe()
