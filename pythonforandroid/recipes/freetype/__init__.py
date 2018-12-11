@@ -1,6 +1,5 @@
-from pythonforandroid.toolchain import Recipe
-from pythonforandroid.util import current_directory
-from pythonforandroid.logger import shprint
+
+from pythonforandroid.toolchain import Recipe, current_directory, shprint
 from os.path import exists, join, realpath
 import sh
 
@@ -8,13 +7,12 @@ import sh
 class FreetypeRecipe(Recipe):
 
     version = '2.5.5'
-    url = 'http://download.savannah.gnu.org/releases/freetype/freetype-{version}.tar.gz'  # noqa
+    url = 'http://download.savannah.gnu.org/releases/freetype/freetype-{version}.tar.gz'
 
     depends = ['harfbuzz']
 
     def should_build(self, arch):
-        if exists(join(self.get_build_dir(arch.arch),
-                       'objs', '.libs', 'libfreetype.a')):
+        if exists(join(self.get_build_dir(arch.arch), 'objs', '.libs', 'libfreetype.so')):
             return False
         return True
 
@@ -24,21 +22,17 @@ class FreetypeRecipe(Recipe):
         harfbuzz_recipe = Recipe.get_recipe('harfbuzz', self.ctx)
         env['LDFLAGS'] = ' '.join(
             [env['LDFLAGS'],
-             '-L{}'.format(join(harfbuzz_recipe.get_build_dir(arch.arch),
-                                'src', '.libs'))])
+             '-L{}'.format(join(harfbuzz_recipe.get_build_dir(arch.arch), 'src', '.libs'))])
 
         with current_directory(self.get_build_dir(arch.arch)):
             configure = sh.Command('./configure')
-            shprint(configure,
-                    '--host=arm-linux-androideabi',
+            shprint(configure, '--host=arm-linux-androideabi',
                     '--prefix={}'.format(realpath('.')),
-                    '--without-zlib',
-                    '--with-png=no',
-                    '--disable-shared',
+                    '--without-zlib', '--with-png=no', '--enable-shared',
                     _env=env)
             shprint(sh.make, '-j5', _env=env)
 
-            shprint(sh.cp, 'objs/.libs/libfreetype.a', self.ctx.libs_dir)
+            shprint(sh.cp, 'objs/.libs/libfreetype.so', self.ctx.libs_dir)
 
 
 recipe = FreetypeRecipe()
