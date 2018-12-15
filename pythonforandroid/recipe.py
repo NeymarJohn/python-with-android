@@ -407,12 +407,12 @@ class Recipe(with_metaclass(RecipeMeta)):
             else:
                 info('{} is already unpacked, skipping'.format(self.name))
 
-    def get_recipe_env(self, arch=None, with_flags_in_cc=True, clang=False):
+    def get_recipe_env(self, arch=None, with_flags_in_cc=True):
         """Return the env specialized for the recipe
         """
         if arch is None:
             arch = self.filtered_archs[0]
-        return arch.get_env(with_flags_in_cc=with_flags_in_cc, clang=clang)
+        return arch.get_env(with_flags_in_cc=with_flags_in_cc)
 
     def prebuild_arch(self, arch):
         '''Run any pre-build tasks for the Recipe. By default, this checks if
@@ -597,11 +597,6 @@ class BootstrapNDKRecipe(Recipe):
 
     To build an NDK project which is not part of the bootstrap, see
     :class:`~pythonforandroid.recipe.NDKRecipe`.
-
-    To link with python, call the method :meth:`get_recipe_env`
-    with the kwarg *with_python=True*. If recipe contains android's mk files
-    which should be linked with python, you may want to use the env variables
-    MK_PYTHON_INCLUDE_ROOT and MK_PYTHON_LINK_ROOT set in there.
     '''
 
     dir_name = None  # The name of the recipe build folder in the jni dir
@@ -617,30 +612,6 @@ class BootstrapNDKRecipe(Recipe):
 
     def get_jni_dir(self):
         return join(self.ctx.bootstrap.build_dir, 'jni')
-
-    def get_recipe_env(self, arch=None, with_flags_in_cc=True, with_python=False):
-        env = super(BootstrapNDKRecipe, self).get_recipe_env(
-            arch, with_flags_in_cc)
-        if not with_python:
-            return env
-
-        env['PYTHON_INCLUDE_ROOT'] = self.ctx.python_recipe.include_root(arch.arch)
-        env['PYTHON_LINK_ROOT'] = self.ctx.python_recipe.link_root(arch.arch)
-        env['EXTRA_LDLIBS'] = ' -lpython{}'.format(
-            self.ctx.python_recipe.major_minor_version_string)
-        if 'python3' in self.ctx.python_recipe.name:
-            env['EXTRA_LDLIBS'] += 'm'
-
-        # set some env variables that may be needed to build some bootstrap ndk
-        # recipes that needs linking with our python via mk files, like
-        # recipes: sdl2, genericndkbuild or sdl
-        other_builds = join(self.ctx.build_dir, 'other_builds') + '/'
-        env['MK_PYTHON_INCLUDE_ROOT'] = \
-            self.ctx.python_recipe.include_root(arch.arch)[
-            len(other_builds):]
-        env['MK_PYTHON_LINK_ROOT'] = \
-            self.ctx.python_recipe.link_root(arch.arch)[len(other_builds):]
-        return env
 
 
 class NDKRecipe(Recipe):
@@ -668,13 +639,7 @@ class NDKRecipe(Recipe):
 
         env = self.get_recipe_env(arch)
         with current_directory(self.get_build_dir(arch.arch)):
-            shprint(
-                sh.ndk_build,
-                'V=1',
-                'APP_PLATFORM=android-' + str(self.ctx.ndk_api),
-                'APP_ABI=' + arch.arch,
-                *extra_args, _env=env
-            )
+            shprint(sh.ndk_build, 'V=1', 'APP_ABI=' + arch.arch, *extra_args, _env=env)
 
 
 class PythonRecipe(Recipe):
@@ -706,7 +671,7 @@ class PythonRecipe(Recipe):
     def __init__(self, *args, **kwargs):
         super(PythonRecipe, self).__init__(*args, **kwargs)
         depends = self.depends
-        depends.append(('python2', 'python2legacy', 'python3', 'python3crystax'))
+        depends.append(('python2', 'python3', 'python3crystax'))
         depends = list(set(depends))
         self.depends = depends
 
@@ -725,12 +690,17 @@ class PythonRecipe(Recipe):
 
     @property
     def real_hostpython_location(self):
-        host_name = 'host{}'.format(self.ctx.python_recipe.name)
-        host_build = Recipe.get_recipe(host_name, self.ctx).get_build_dir()
-        if host_name in ['hostpython2', 'hostpython3']:
-            return join(host_build, 'native-build', 'python')
-        elif host_name in ['hostpython3crystax', 'hostpython2legacy']:
-            return join(host_build, 'hostpython')
+        if 'hostpython2' in self.ctx.recipe_build_order:
+            return join(
+                Recipe.get_recipe('hostpython2', self.ctx).get_build_dir(),
+                'hostpython')
+        elif 'hostpython3crystax' in self.ctx.recipe_build_order:
+            return join(
+                Recipe.get_recipe('hostpython3crystax', self.ctx).get_build_dir(),
+                'hostpython')
+        elif 'hostpython3' in self.ctx.recipe_build_order:
+            return join(Recipe.get_recipe('hostpython3', self.ctx).get_build_dir(),
+                        'native-build', 'python')
         else:
             python_recipe = self.ctx.python_recipe
             return 'python{}'.format(python_recipe.version)
@@ -756,22 +726,15 @@ class PythonRecipe(Recipe):
 
         if not self.call_hostpython_via_targetpython:
             # sets python headers/linkages...depending on python's recipe
-            python_name = self.ctx.python_recipe.name
             python_version = self.ctx.python_recipe.version
             python_short_version = '.'.join(python_version.split('.')[:2])
-            if not self.ctx.python_recipe.from_crystax:
-                env['CFLAGS'] += ' -I{}'.format(
-                    self.ctx.python_recipe.include_root(arch.arch))
-                env['LDFLAGS'] += ' -L{} -lpython{}'.format(
-                    self.ctx.python_recipe.link_root(arch.arch),
-                    self.ctx.python_recipe.major_minor_version_string)
-                if python_name == 'python3':
-                    env['LDFLAGS'] += 'm'
-                elif python_name == 'python2legacy':
-                    env['PYTHON_ROOT'] = join(
-                        self.ctx.python_recipe.get_build_dir(
-                            arch.arch), 'python-install')
-            else:
+            if 'python2' in self.ctx.recipe_build_order:
+                env['PYTHON_ROOT'] = self.ctx.get_python_install_dir()
+                env['CFLAGS'] += ' -I' + env[
+                    'PYTHON_ROOT'] + '/include/python2.7'
+                env['LDFLAGS'] += (
+                    ' -L' + env['PYTHON_ROOT'] + '/lib' + ' -lpython2.7')
+            elif self.ctx.python_recipe.from_crystax:
                 ndk_dir_python = join(self.ctx.ndk_dir, 'sources',
                                       'python', python_version)
                 env['CFLAGS'] += ' -I{} '.format(
@@ -780,19 +743,22 @@ class PythonRecipe(Recipe):
                 env['LDFLAGS'] += ' -L{}'.format(
                     join(ndk_dir_python, 'libs', arch.arch))
                 env['LDFLAGS'] += ' -lpython{}m'.format(python_short_version)
+            elif 'python3' in self.ctx.recipe_build_order:
+                env['CFLAGS'] += ' -I{}'.format(self.ctx.python_recipe.include_root(arch.arch))
+                env['LDFLAGS'] += ' -L{} -lpython{}m'.format(
+                    self.ctx.python_recipe.link_root(arch.arch),
+                    self.ctx.python_recipe.major_minor_version_string)
 
             hppath = []
             hppath.append(join(dirname(self.hostpython_location), 'Lib'))
             hppath.append(join(hppath[0], 'site-packages'))
             builddir = join(dirname(self.hostpython_location), 'build')
-            if exists(builddir):
-                hppath += [join(builddir, d) for d in listdir(builddir)
-                           if isdir(join(builddir, d))]
-            if len(hppath) > 0:
-                if 'PYTHONPATH' in env:
-                    env['PYTHONPATH'] = ':'.join(hppath + [env['PYTHONPATH']])
-                else:
-                    env['PYTHONPATH'] = ':'.join(hppath)
+            hppath += [join(builddir, d) for d in listdir(builddir)
+                       if isdir(join(builddir, d))]
+            if 'PYTHONPATH' in env:
+                env['PYTHONPATH'] = ':'.join(hppath + [env['PYTHONPATH']])
+            else:
+                env['PYTHONPATH'] = ':'.join(hppath)
         return env
 
     def should_build(self, arch):
@@ -823,7 +789,8 @@ class PythonRecipe(Recipe):
         with current_directory(self.get_build_dir(arch.arch)):
             hostpython = sh.Command(self.hostpython_location)
 
-            if self.ctx.python_recipe.name != 'python2legacy':
+            if (self.ctx.python_recipe.from_crystax or
+                    self.ctx.python_recipe.name == 'python3'):
                 hpenv = env.copy()
                 shprint(hostpython, 'setup.py', 'install', '-O2',
                         '--root={}'.format(self.ctx.get_python_install_dir()),
@@ -832,11 +799,13 @@ class PythonRecipe(Recipe):
             elif self.call_hostpython_via_targetpython:
                 shprint(hostpython, 'setup.py', 'install', '-O2', _env=env,
                         *self.setup_extra_args)
-            else:  # python2legacy
-                hppath = join(dirname(self.hostpython_location), 'Lib', 'site-packages')
+            else:
+                hppath = join(dirname(self.hostpython_location), 'Lib',
+                              'site-packages')
                 hpenv = env.copy()
                 if 'PYTHONPATH' in hpenv:
-                    hpenv['PYTHONPATH'] = ':'.join([hppath] + hpenv['PYTHONPATH'].split(':'))
+                    hpenv['PYTHONPATH'] = ':'.join([hppath] +
+                                                   hpenv['PYTHONPATH'].split(':'))
                 else:
                     hpenv['PYTHONPATH'] = hppath
                 shprint(hostpython, 'setup.py', 'install', '-O2',
@@ -946,7 +915,7 @@ class CythonRecipe(PythonRecipe):
     def __init__(self, *args, **kwargs):
         super(CythonRecipe, self).__init__(*args, **kwargs)
         depends = self.depends
-        depends.append(('python2', 'python2legacy', 'python3', 'python3crystax'))
+        depends.append(('python2', 'python3', 'python3crystax'))
         depends = list(set(depends))
         self.depends = depends
 
@@ -962,6 +931,16 @@ class CythonRecipe(PythonRecipe):
         info('Cythonizing anything necessary in {}'.format(self.name))
 
         env = self.get_recipe_env(arch)
+
+        if self.ctx.python_recipe.from_crystax:
+            command = sh.Command('python{}'.format(self.ctx.python_recipe.version))
+            site_packages_dirs = command(
+                '-c', 'import site; print("\\n".join(site.getsitepackages()))')
+            site_packages_dirs = site_packages_dirs.stdout.decode('utf-8').split('\n')
+            if 'PYTHONPATH' in env:
+                env['PYTHONPATH'] = env['PYTHONPATH'] + ':{}'.format(':'.join(site_packages_dirs))
+            else:
+                env['PYTHONPATH'] = ':'.join(site_packages_dirs)
 
         with current_directory(self.get_build_dir(arch.arch)):
             hostpython = sh.Command(self.ctx.hostpython)
@@ -987,19 +966,14 @@ class CythonRecipe(PythonRecipe):
                 info('First build appeared to complete correctly, skipping manual'
                      'cythonising.')
 
-            self.strip_object_files(arch, env)
-
-    def strip_object_files(self, arch, env, build_dir=None):
-        if build_dir is None:
-            build_dir = self.get_build_dir(arch.arch)
-        with current_directory(build_dir):
-            info('Stripping object files')
-            if self.ctx.python_recipe.name == 'python2legacy':
+            if 'python2' in self.ctx.recipe_build_order:
                 info('Stripping object files')
                 build_lib = glob.glob('./build/lib*')
                 shprint(sh.find, build_lib[0], '-name', '*.o', '-exec',
                         env['STRIP'], '{}', ';', _env=env)
-            else:
+
+            else:  # python3crystax or python3
+                info('Stripping object files')
                 shprint(sh.find, '.', '-iname', '*.so', '-exec',
                         '/usr/bin/echo', '{}', ';', _env=env)
                 shprint(sh.find, '.', '-iname', '*.so', '-exec',
@@ -1043,10 +1017,10 @@ class CythonRecipe(PythonRecipe):
             env['LDFLAGS'] = (env['LDFLAGS'] +
                               ' -L{}'.format(join(self.ctx.bootstrap.build_dir, 'libs', arch.arch)))
 
-        if self.ctx.python_recipe.name == 'python2legacy':
-            env['LDSHARED'] = join(self.ctx.root_dir, 'tools', 'liblink.sh')
-        else:
+        if self.ctx.python_recipe.from_crystax or self.ctx.python_recipe.name == 'python3':
             env['LDSHARED'] = env['CC'] + ' -shared'
+        else:
+            env['LDSHARED'] = join(self.ctx.root_dir, 'tools', 'liblink.sh')
         # shprint(sh.whereis, env['LDSHARED'], _env=env)
         env['LIBLINK'] = 'NOTNONE'
         env['NDKPLATFORM'] = self.ctx.ndk_platform
@@ -1059,24 +1033,6 @@ class CythonRecipe(PythonRecipe):
                             'objects_{}'.format(self.name))
         env['LIBLINK_PATH'] = liblink_path
         ensure_dir(liblink_path)
-
-        # Add crystax-specific site packages:
-        if self.ctx.python_recipe.from_crystax:
-            command = sh.Command('python{}'.format(self.ctx.python_recipe.version))
-            site_packages_dirs = command(
-                '-c', 'import site; print("\\n".join(site.getsitepackages()))')
-            site_packages_dirs = site_packages_dirs.stdout.decode('utf-8').split('\n')
-            if 'PYTHONPATH' in env:
-                env['PYTHONPATH'] = env['PYTHONPATH'] +\
-                    ':{}'.format(':'.join(site_packages_dirs))
-            else:
-                env['PYTHONPATH'] = ':'.join(site_packages_dirs)
-            while env['PYTHONPATH'].find("::") > 0:
-                env['PYTHONPATH'] = env['PYTHONPATH'].replace("::", ":")
-            if env['PYTHONPATH'].endswith(":"):
-                env['PYTHONPATH'] = env['PYTHONPATH'][:-1]
-            if env['PYTHONPATH'].startswith(":"):
-                env['PYTHONPATH'] = env['PYTHONPATH'][1:]
 
         return env
 
