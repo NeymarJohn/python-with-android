@@ -29,7 +29,6 @@ class Python2Recipe(GuestPythonRecipe):
                #  is_api_lt(21)), # Todo: this should be tested
                'patches/fix-missing-extensions.patch',
                'patches/fix-filesystem-default-encoding.patch',
-               'patches/fix-gethostbyaddr.patch',
                'patches/fix-posix-declarations.patch',
                'patches/fix-pwd-gecos.patch']
 
