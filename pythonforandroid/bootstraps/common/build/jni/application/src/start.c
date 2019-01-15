@@ -17,7 +17,9 @@
 #include "bootstrap_name.h"
 #ifndef BOOTSTRAP_USES_NO_SDL_HEADERS
 #include "SDL.h"
+#ifndef BOOTSTRAP_NAME_PYGAME
 #include "SDL_opengles2.h"
+#endif
 #endif
 #ifdef BOOTSTRAP_NAME_PYGAME
 #include "jniwrapperstuff.h"
@@ -104,6 +106,10 @@ int main(int argc, char *argv[]) {
   LOGP(env_argument);
   chdir(env_argument);
 
+#if PY_MAJOR_VERSION < 3
+  Py_NoSiteFlag=1;
+#endif
+
   Py_SetProgramName(L"android_python");
 
 #if PY_MAJOR_VERSION >= 3
@@ -144,10 +150,6 @@ int main(int argc, char *argv[]) {
     #if PY_MAJOR_VERSION >= 3
         wchar_t *wchar_paths = Py_DecodeLocale(paths, NULL);
         Py_SetPath(wchar_paths);
-    #else
-        char *wchar_paths = paths;
-        LOGP("Can't Py_SetPath in python2, so crystax python2 doesn't work yet");
-        exit(1);
     #endif
 
         LOGP("set wchar paths...");
@@ -161,6 +163,12 @@ int main(int argc, char *argv[]) {
   Py_Initialize();
 
 #if PY_MAJOR_VERSION < 3
+  // Can't Py_SetPath in python2 but we can set PySys_SetPath, which must
+  // be applied after Py_Initialize rather than before like Py_SetPath
+  #if PY_MICRO_VERSION >= 15
+    // Only for python native-build
+    PySys_SetPath(paths);
+  #endif
   PySys_SetArgv(argc, argv);
 #endif
 
@@ -183,7 +191,9 @@ int main(int argc, char *argv[]) {
    */
   PyRun_SimpleString("import sys, posix\n");
   if (dir_exists("lib")) {
-    /* If we built our own python, set up the paths correctly */
+    /* If we built our own python, set up the paths correctly.
+     * This is only the case if we are using the python2legacy recipe
+     */
     LOGP("Setting up python from ANDROID_APP_PATH");
     PyRun_SimpleString("private = posix.environ['ANDROID_APP_PATH']\n"
                        "argument = posix.environ['ANDROID_ARGUMENT']\n"
@@ -327,10 +337,8 @@ JNIEXPORT void JNICALL Java_org_kivy_android_PythonService_nativeStart(
     jobject thiz,
     jstring j_android_private,
     jstring j_android_argument,
-#if (!defined(BOOTSTRAP_NAME_PYGAME))
     jstring j_service_entrypoint,
     jstring j_python_name,
-#endif
     jstring j_python_home,
     jstring j_python_path,
     jstring j_arg) {
@@ -339,14 +347,10 @@ JNIEXPORT void JNICALL Java_org_kivy_android_PythonService_nativeStart(
       (*env)->GetStringUTFChars(env, j_android_private, &iscopy);
   const char *android_argument =
       (*env)->GetStringUTFChars(env, j_android_argument, &iscopy);
-#if (!defined(BOOTSTRAP_NAME_PYGAME))
   const char *service_entrypoint =
       (*env)->GetStringUTFChars(env, j_service_entrypoint, &iscopy);
   const char *python_name =
       (*env)->GetStringUTFChars(env, j_python_name, &iscopy);
-#else
-  const char python_name[] = "python2";
-#endif
   const char *python_home =
       (*env)->GetStringUTFChars(env, j_python_home, &iscopy);
   const char *python_path =
@@ -356,10 +360,7 @@ JNIEXPORT void JNICALL Java_org_kivy_android_PythonService_nativeStart(
   setenv("ANDROID_PRIVATE", android_private, 1);
   setenv("ANDROID_ARGUMENT", android_argument, 1);
   setenv("ANDROID_APP_PATH", android_argument, 1);
-
-#if (!defined(BOOTSTRAP_NAME_PYGAME))
   setenv("ANDROID_ENTRYPOINT", service_entrypoint, 1);
-#endif
   setenv("PYTHONOPTIMIZE", "2", 1);
   setenv("PYTHON_NAME", python_name, 1);
   setenv("PYTHONHOME", python_home, 1);
@@ -374,8 +375,8 @@ JNIEXPORT void JNICALL Java_org_kivy_android_PythonService_nativeStart(
   main(1, argv);
 }
 
-#ifdef BOOTSTRAP_NAME_WEBVIEW
-// Webview uses some more functions:
+#if defined(BOOTSTRAP_NAME_WEBVIEW) || defined(BOOTSTRAP_NAME_SERVICEONLY)
+// Webview and service_only uses some more functions:
 
 void Java_org_kivy_android_PythonActivity_nativeSetEnv(
                                     JNIEnv* env, jclass jcls,
