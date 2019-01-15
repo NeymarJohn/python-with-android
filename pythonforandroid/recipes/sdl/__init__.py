@@ -8,7 +8,7 @@ class LibSDLRecipe(BootstrapNDKRecipe):
     version = "1.2.14"
     url = None
     name = 'sdl'
-    depends = ['python2', 'pygame_bootstrap_components']
+    depends = ['python2legacy', 'pygame_bootstrap_components']
     conflicts = ['sdl2']
 
     def build_arch(self, arch):
@@ -29,12 +29,9 @@ class LibSDLRecipe(BootstrapNDKRecipe):
             shprint(sh.cp, '-a', join(self.ctx.bootstrap.build_dir, 'libs', arch.arch, content),
                     self.ctx.libs_dir)
 
-    def get_recipe_env(self, arch=None):
-        env = super(LibSDLRecipe, self).get_recipe_env(arch)
-        py2 = self.get_recipe('python2', arch.ctx)
-        env['PYTHON2_NAME'] = py2.get_dir_name()
-        if 'python2' in self.ctx.recipe_build_order:
-            env['EXTRA_LDLIBS'] = ' -lpython2.7'
+    def get_recipe_env(self, arch=None, with_flags_in_cc=True, with_python=True):
+        env = super(LibSDLRecipe, self).get_recipe_env(
+            arch=arch, with_flags_in_cc=with_flags_in_cc, with_python=with_python)
         return env
 
 
