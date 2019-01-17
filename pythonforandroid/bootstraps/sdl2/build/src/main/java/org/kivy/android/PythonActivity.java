@@ -365,32 +365,8 @@ public class PythonActivity extends SDLActivity {
         }
     }
 
-    public static void start_service(
-            String serviceTitle,
-            String serviceDescription,
-            String pythonServiceArgument
-            ) {
-        _do_start_service(
-            serviceTitle, serviceDescription, pythonServiceArgument, true
-        );
-    }
-
-    public static void start_service_not_as_foreground(
-            String serviceTitle,
-            String serviceDescription,
-            String pythonServiceArgument
-            ) {
-        _do_start_service(
-            serviceTitle, serviceDescription, pythonServiceArgument, false
-        );
-    }
-
-    public static void _do_start_service(
-            String serviceTitle,
-            String serviceDescription,
-            String pythonServiceArgument,
-            boolean showForegroundNotification
-            ) {
+    public static void start_service(String serviceTitle, String serviceDescription,
+                String pythonServiceArgument) {
         Intent serviceIntent = new Intent(PythonActivity.mActivity, PythonService.class);
         String argument = PythonActivity.mActivity.getFilesDir().getAbsolutePath();
         String filesDirectory = argument;
@@ -402,9 +378,6 @@ public class PythonActivity extends SDLActivity {
         serviceIntent.putExtra("pythonName", "python");
         serviceIntent.putExtra("pythonHome", app_root_dir);
         serviceIntent.putExtra("pythonPath", app_root_dir + ":" + app_root_dir + "/lib");
-        serviceIntent.putExtra("serviceStartAsForeground",
-            (showForegroundNotification ? "true" : "false")
-        );
         serviceIntent.putExtra("serviceTitle", serviceTitle);
         serviceIntent.putExtra("serviceDescription", serviceDescription);
         serviceIntent.putExtra("pythonServiceArgument", pythonServiceArgument);

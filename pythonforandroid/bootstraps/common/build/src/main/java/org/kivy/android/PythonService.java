@@ -35,11 +35,8 @@ public class PythonService extends Service implements Runnable {
     private String pythonHome;
     private String pythonPath;
     private String serviceEntrypoint;
-    private boolean serviceStartAsForeground;
     // Argument to pass to Python code,
     private String pythonServiceArgument;
-
-
     public static PythonService mService = null;
     private Intent startIntent = null;
 
@@ -47,6 +44,10 @@ public class PythonService extends Service implements Runnable {
 
     public void setAutoRestartService(boolean restart) {
         autoRestartService = restart;
+    }
+
+    public boolean canDisplayNotification() {
+        return true;
     }
 
     public int startType() {
@@ -78,22 +79,16 @@ public class PythonService extends Service implements Runnable {
         pythonName = extras.getString("pythonName");
         pythonHome = extras.getString("pythonHome");
         pythonPath = extras.getString("pythonPath");
-        serviceStartAsForeground = (
-            extras.getString("serviceStartAsForeground") == "true"
-        );
         pythonServiceArgument = extras.getString("pythonServiceArgument");
+
         pythonThread = new Thread(this);
         pythonThread.start();
 
-        if (serviceStartAsForeground) {
+        if (canDisplayNotification()) {
             doStartForeground(extras);
         }
 
         return startType();
-    }
-
-    protected int getServiceId() {
-        return 1;
     }
 
     protected void doStartForeground(Bundle extras) {
@@ -121,7 +116,7 @@ public class PythonService extends Service implements Runnable {
             // for android 8+ we need to create our own channel
             // https://stackoverflow.com/questions/47531742/startforeground-fail-after-upgrade-to-android-8-1
             String NOTIFICATION_CHANNEL_ID = "org.kivy.p4a";    //TODO: make this configurable
-            String channelName = "Background Service";                //TODO: make this configurable
+            String channelName = "PythonSerice";                //TODO: make this configurable
             NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName, 
                 NotificationManager.IMPORTANCE_NONE);
             
@@ -137,7 +132,7 @@ public class PythonService extends Service implements Runnable {
             builder.setSmallIcon(context.getApplicationInfo().icon);
             notification = builder.build();
         }
-        startForeground(getServiceId(), notification);
+        startForeground(1, notification);
     }
 
     @Override
