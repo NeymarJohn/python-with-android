@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import tempfile
 import time
 from zipfile import ZipFile
 
@@ -22,16 +23,24 @@ from fnmatch import fnmatch
 import jinja2
 
 
-def get_bootstrap_name():
+def get_dist_info_for(key):
     try:
         with open(join(dirname(__file__), 'dist_info.json'), 'r') as fileh:
             info = json.load(fileh)
-        bootstrap = str(info["bootstrap"])
+        value = str(info[key])
     except (OSError, KeyError) as e:
-        print("BUILD FAILURE: Couldn't extract bootstrap name " +
+        print("BUILD FAILURE: Couldn't extract the key `" + key + "` " +
               "from dist_info.json: " + str(e))
         sys.exit(1)
-    return bootstrap
+    return value
+
+
+def get_hostpython():
+    return get_dist_info_for('hostpython')
+
+
+def get_bootstrap_name():
+    return get_dist_info_for('bootstrap')
 
 
 if os.name == 'nt':
@@ -43,9 +52,8 @@ else:
 
 curdir = dirname(__file__)
 
-# Try to find a host version of Python that matches our ARM version.
-PYTHON = join(curdir, 'python-install', 'bin', 'python.host')
-if not exists(PYTHON):
+PYTHON = get_hostpython()
+if PYTHON is not None and not exists(PYTHON):
     PYTHON = None
 
 BLACKLIST_PATTERNS = [
@@ -273,8 +281,17 @@ main.py that loads it.''')
     # construct a python27.zip
     make_python_zip()
 
+    # Add extra environment variable file into tar-able directory:
+    env_vars_tarpath = tempfile.mkdtemp(prefix="p4a-extra-env-")
+    with open(os.path.join(env_vars_tarpath, "p4a_env_vars.txt"), "w") as f:
+        f.write("P4A_IS_WINDOWED=" + str(args.window) + "\n")
+        if hasattr(args, "orientation"):
+            f.write("P4A_ORIENTATION=" + str(args.orientation) + "\n")
+        f.write("P4A_NUMERIC_VERSION=" + str(args.numeric_version) + "\n")
+        f.write("P4A_MINSDK=" + str(args.min_sdk_version) + "\n")
+
     # Package up the private data (public not supported).
-    tar_dirs = []
+    tar_dirs = [env_vars_tarpath]
     if args.private:
         tar_dirs.append(args.private)
     for python_bundle_dir in ('private', 'crystax_python', '_python_bundle'):
@@ -286,6 +303,9 @@ main.py that loads it.''')
         make_tar(
             join(assets_dir, 'private.mp3'), tar_dirs, args.ignore_path,
             optimize_python=args.optimize_python)
+
+    # Remove extra env vars tar-able directory:
+    shutil.rmtree(env_vars_tarpath)
 
     # Prepare some variables for templating process
     res_dir = "src/main/res"
@@ -481,6 +501,31 @@ main.py that loads it.''')
     else:
         if exists('build.properties'):
             os.remove('build.properties')
+
+    # Apply java source patches if any are present:
+    if exists(join('src', 'patches')):
+        print("Applying Java source code patches...")
+        for patch_name in os.listdir(join('src', 'patches')):
+            patch_path = join('src', 'patches', patch_name)
+            print("Applying patch: " + str(patch_path))
+            try:
+                subprocess.check_output([
+                    # -N: insist this is FORWARd patch, don't reverse apply
+                    # -p1: strip first path component
+                    # -t: batch mode, don't ask questions
+                    "patch", "-N", "-p1", "-t", "-i", patch_path
+                ])
+            except subprocess.CalledProcessError as e:
+                if e.returncode == 1:
+                    # Return code 1 means it didn't apply, this will
+                    # usually mean it is already applied.
+                    print("Warning: failed to apply patch (" +
+                          "exit code 1), " +
+                          "assuming it is already applied: " +
+                          str(patch_path)
+                         )
+                else:
+                    raise e
 
 
 def parse_args(args=None):
