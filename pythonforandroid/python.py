@@ -179,8 +179,8 @@ class GuestPythonRecipe(TargetPythonRecipe):
             info('Activating flags for libffi')
             recipe = Recipe.get_recipe('libffi', self.ctx)
             add_flags(' -I' + ' -I'.join(recipe.get_include_dirs(arch)),
-                      ' -L' + join(recipe.get_build_dir(arch.arch),
-                                   recipe.get_host(arch), '.libs'), ' -lffi')
+                      ' -L' + join(recipe.get_build_dir(arch.arch), '.libs'),
+                      ' -lffi')
 
         if 'openssl' in self.ctx.recipe_build_order:
             info('Activating flags for openssl')
@@ -263,9 +263,8 @@ class GuestPythonRecipe(TargetPythonRecipe):
             self.get_build_dir(arch.arch),
             'android-build',
             'build',
-            'lib.linux{}-{}-{}'.format(
+            'lib.linux{}-arm-{}'.format(
                 '2' if self.version[0] == '2' else '',
-                arch.command_prefix.split('-')[0],
                 self.major_minor_version_string
             ))
         module_filens = (glob.glob(join(modules_build_dir, '*.so')) +
