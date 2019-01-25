@@ -11,22 +11,20 @@ class LibZBarRecipe(Recipe):
 
     url = 'https://github.com/ZBar/ZBar/archive/{version}.zip'
 
-    depends = ['hostpython2', 'python2', 'libiconv']
+    depends = ['libiconv']
 
     patches = ["werror.patch"]
 
     def should_build(self, arch):
         return not os.path.exists(
-                os.path.join(self.ctx.get_libs_dir(arch.arch), 'libzbar.so'))
+            os.path.join(self.ctx.get_libs_dir(arch.arch), 'libzbar.so'))
 
     def get_recipe_env(self, arch=None, with_flags_in_cc=True):
         env = super(LibZBarRecipe, self).get_recipe_env(arch, with_flags_in_cc)
         libiconv = self.get_recipe('libiconv', self.ctx)
         libiconv_dir = libiconv.get_build_dir(arch.arch)
         env['CFLAGS'] += ' -I' + os.path.join(libiconv_dir, 'include')
-        env['LDSHARED'] = env['CC'] + \
-            ' -pthread -shared -Wl,-O1 -Wl,-Bsymbolic-functions'
-        env['LDFLAGS'] += " -landroid -liconv"
+        env['LIBS'] = env.get('LIBS', '') + ' -landroid -liconv'
         return env
 
     def build_arch(self, arch):
