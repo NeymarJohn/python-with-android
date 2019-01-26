@@ -263,11 +263,8 @@ class Bootstrap(object):
             info('Python was loaded from CrystaX, skipping strip')
             return
         env = arch.get_env()
-        strip = which('arm-linux-androideabi-strip', env['PATH'])
-        if strip is None:
-            warning('Can\'t find strip in PATH...')
-            return
-        strip = sh.Command(strip)
+        tokens = env['STRIP'].split(' ')
+        strip = reduce(lambda cmd, t: cmd.bake(t), tokens, sh.Command(tokens.pop(0)))
 
         libs_dir = join(self.dist_dir, '_python_bundle',
                         '_python_bundle', 'modules')
@@ -278,6 +275,8 @@ class Bootstrap(object):
 
         logger.info('Stripping libraries in private dir')
         for filen in filens.split('\n'):
+            if not filen:
+                continue  # skip the last ''
             try:
                 strip(filen, _env=env)
             except sh.ErrorReturnCode_1:
