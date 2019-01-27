@@ -44,7 +44,7 @@ recursively_include(package_data, 'pythonforandroid/recipes',
 recursively_include(package_data, 'pythonforandroid/bootstraps',
                     ['*.properties', '*.xml', '*.java', '*.tmpl', '*.txt', '*.png',
                      '*.mk', '*.c', '*.h', '*.py', '*.sh', '*.jpg', '*.aidl',
-                     '*.gradle', '.gitkeep', 'gradlew*', '*.jar', "*.patch", ])
+                     '*.gradle', '.gitkeep', 'gradlew*', '*.jar', ])
 recursively_include(package_data, 'pythonforandroid/bootstraps',
                     ['sdl-config', ])
 recursively_include(package_data, 'pythonforandroid/bootstraps/webview',
