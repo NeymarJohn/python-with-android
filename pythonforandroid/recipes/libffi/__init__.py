@@ -1,7 +1,7 @@
 from os.path import exists, join
 from pythonforandroid.recipe import Recipe
 from pythonforandroid.logger import info, shprint
-from pythonforandroid.util import current_directory, ensure_dir
+from pythonforandroid.util import current_directory
 from glob import glob
 import sh
 
@@ -77,10 +77,8 @@ class LibffiRecipe(Recipe):
             with current_directory(host_build):
                 shprint(cc, *cflags, _env=env)
 
-            ensure_dir(self.ctx.get_libs_dir(arch.arch))
-            shprint(sh.cp,
-                    join(host_build, '.libs', 'libffi.so'),
-                    self.ctx.get_libs_dir(arch.arch))
+            shprint(sh.cp, '-t', self.ctx.get_libs_dir(arch.arch),
+                    join(host_build, '.libs', 'libffi.so'))
 
     def get_include_dirs(self, arch):
         return [join(self.get_build_dir(arch.arch), 'include')]
