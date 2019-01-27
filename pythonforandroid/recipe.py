@@ -179,18 +179,14 @@ class Recipe(with_metaclass(RecipeMeta)):
                         shprint(sh.git, 'submodule', 'update', '--recursive')
             return target
 
-    def apply_patch(self, filename, arch, build_dir=None):
+    def apply_patch(self, filename, arch):
         """
         Apply a patch from the current recipe directory into the current
         build directory.
-
-        .. versionchanged:: 0.6.0
-            Add ability to apply patch from any dir via kwarg `build_dir`'''
         """
         info("Applying patch {}".format(filename))
-        build_dir = build_dir if build_dir else self.get_build_dir(arch)
         filename = join(self.get_recipe_dir(), filename)
-        shprint(sh.patch, "-t", "-d", build_dir, "-p1",
+        shprint(sh.patch, "-t", "-d", self.get_build_dir(arch), "-p1",
                 "-i", filename, _tail=10)
 
     def copy_file(self, filename, dest):
@@ -240,6 +236,12 @@ class Recipe(with_metaclass(RecipeMeta)):
             if recipe in built_recipes:
                 recipes.append(recipe)
         return sorted(recipes)
+
+    def get_opt_depends_in_list(self, recipes):
+        '''Given a list of recipe names, returns those that are also in
+        self.opt_depends.
+        '''
+        return [recipe for recipe in recipes if recipe in self.opt_depends]
 
     def get_build_container_dir(self, arch):
         '''Given the arch name, returns the directory where it will be
@@ -445,11 +447,8 @@ class Recipe(with_metaclass(RecipeMeta)):
         build_dir = self.get_build_dir(arch.arch)
         return exists(join(build_dir, '.patched'))
 
-    def apply_patches(self, arch, build_dir=None):
-        '''Apply any patches for the Recipe.
-
-        .. versionchanged:: 0.6.0
-            Add ability to apply patches from any dir via kwarg `build_dir`'''
+    def apply_patches(self, arch):
+        '''Apply any patches for the Recipe.'''
         if self.patches:
             info_main('Applying patches for {}[{}]'
                       .format(self.name, arch.arch))
@@ -458,7 +457,6 @@ class Recipe(with_metaclass(RecipeMeta)):
                 info_main('{} already patched, skipping'.format(self.name))
                 return
 
-            build_dir = build_dir if build_dir else self.get_build_dir(arch.arch)
             for patch in self.patches:
                 if isinstance(patch, (tuple, list)):
                     patch, patch_check = patch
@@ -467,9 +465,9 @@ class Recipe(with_metaclass(RecipeMeta)):
 
                 self.apply_patch(
                         patch.format(version=self.version, arch=arch.arch),
-                        arch.arch, build_dir=build_dir)
+                        arch.arch)
 
-            shprint(sh.touch, join(build_dir, '.patched'))
+            shprint(sh.touch, join(self.get_build_dir(arch.arch), '.patched'))
 
     def should_build(self, arch):
         '''Should perform any necessary test and return True only if it needs
