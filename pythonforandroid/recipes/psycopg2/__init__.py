@@ -4,14 +4,10 @@ import sh
 
 
 class Psycopg2Recipe(PythonRecipe):
-    """
-    Requires `libpq-dev` system dependency e.g. for `pg_config` binary.
-    """
     version = 'latest'
     url = 'http://initd.org/psycopg/tarballs/psycopg2-{version}.tar.gz'
-    depends = ['libpq']
+    depends = [('python2', 'python3crystax'), 'libpq']
     site_packages_name = 'psycopg2'
-    call_hostpython_via_targetpython = False
 
     def prebuild_arch(self, arch):
         libdir = self.ctx.get_libs_dir(arch.arch)

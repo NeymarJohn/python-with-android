@@ -7,7 +7,7 @@ class CdecimalRecipe(CompiledComponentsPythonRecipe):
     version = '2.3'
     url = 'http://www.bytereef.org/software/mpdecimal/releases/cdecimal-{version}.tar.gz'
 
-    depends = []
+    depends = ['python2']
 
     patches = ['locale.patch',
                'cross-compile.patch']
