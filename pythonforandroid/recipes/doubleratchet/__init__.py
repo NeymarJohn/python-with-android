@@ -6,6 +6,7 @@ class DoubleRatchetRecipe(PythonRecipe):
     version = '0.4.0'
     url = 'https://pypi.python.org/packages/source/D/DoubleRatchet/DoubleRatchet-{version}.tar.gz'
     depends = [
+        ('python2', 'python3crystax'),
         'setuptools',
         'cryptography',
     ]
