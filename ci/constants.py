@@ -16,8 +16,6 @@ BROKEN_RECIPES_PYTHON2 = set([
     # https://github.com/kivy/python-for-android/issues/550
     'audiostream',
     'brokenrecipe',
-    # https://github.com/kivy/python-for-android/issues/1409
-    'enaml',
     'evdev',
     # distutils.errors.DistutilsError
     # Could not find suitable distribution for Requirement.parse('cython')
@@ -47,7 +45,7 @@ BROKEN_RECIPES_PYTHON2 = set([
     'doubleratchet',
     'omemo',
     'cryptography',
-    # https://github.com/kivy/python-for-android/issues/1405
+    # requires `libpq-dev` system dependency e.g. for `pg_config` binary
     'psycopg2',
     'pygame',
     # most likely some setup in the Docker container, because it works in host
@@ -65,7 +63,7 @@ BROKEN_RECIPES_PYTHON2 = set([
     'zeroconf',
     'zope',
 ])
-BROKEN_RECIPES_PYTHON3_CRYSTAX = set([
+BROKEN_RECIPES_PYTHON3 = set([
     'brokenrecipe',
     # enum34 is not compatible with Python 3.6 standard library
     # https://stackoverflow.com/a/45716067/185510
@@ -85,8 +83,8 @@ BROKEN_RECIPES_PYTHON3_CRYSTAX = set([
     'icu',
     # https://github.com/kivy/python-for-android/issues/1354
     'kivent_core', 'kivent_cymunk', 'kivent_particles', 'kivent_polygen',
-    # https://github.com/kivy/python-for-android/issues/1405
-    'libpq', 'psycopg2',
+    # requires `libpq-dev` system dependency e.g. for `pg_config` binary
+    'psycopg2',
     'netifaces',
     # https://github.com/kivy/python-for-android/issues/1315 ?
     'opencv',
@@ -99,13 +97,9 @@ BROKEN_RECIPES_PYTHON3_CRYSTAX = set([
     'sympy',
     'vlc',
 ])
-# to be created via https://github.com/kivy/python-for-android/issues/1514
-BROKEN_RECIPES_PYTHON3 = set([
-])
 
 BROKEN_RECIPES = {
     TargetPython.python2: BROKEN_RECIPES_PYTHON2,
-    TargetPython.python3crystax: BROKEN_RECIPES_PYTHON3_CRYSTAX,
     TargetPython.python3: BROKEN_RECIPES_PYTHON3,
 }
 # recipes that were already built will be skipped

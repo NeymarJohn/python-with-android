@@ -1,9 +1,8 @@
-from distutils.spawn import find_executable
-from os import environ, uname
 from os.path import (exists, join, dirname, split)
+from os import environ, uname
 from glob import glob
-import shlex
 import sys
+from distutils.spawn import find_executable
 
 from pythonforandroid.recipe import Recipe
 from pythonforandroid.util import BuildInterruptingException, build_platform
@@ -20,12 +19,6 @@ class Arch(object):
     def __init__(self, ctx):
         super(Arch, self).__init__()
         self.ctx = ctx
-
-        # Allows injecting additional linker paths used by any recipe.
-        # This can also be modified by recipes (like the librt recipe)
-        # to make sure that some sort of global resource is available &
-        # linked for all others.
-        self.extra_global_link_paths = []
 
     def __str__(self):
         return self.arch
@@ -63,13 +56,7 @@ class Arch(object):
             cflags.append('-gcc-toolchain {}'.format(toolchain))
 
         env['CFLAGS'] = ' '.join(cflags)
-
-        # Link the extra global link paths first before anything else
-        # (such that overriding system libraries with them is possible)
-        env['LDFLAGS'] = ' ' + " ".join([
-            "-L" + shlex.quote(l)
-            for l in self.extra_global_link_paths
-        ]) + ' '
+        env['LDFLAGS'] = ' '
 
         sysroot = join(self.ctx._ndk_dir, 'sysroot')
         if exists(sysroot):
