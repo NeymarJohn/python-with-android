@@ -9,6 +9,7 @@ class XedDSARecipe(CythonRecipe):
     version = '0.4.4'
     url = 'https://pypi.python.org/packages/source/X/XEdDSA/XEdDSA-{version}.tar.gz'
     depends = [
+        ('python2', 'python3crystax'),
         'setuptools',
         'cffi',
         'pynacl',
