@@ -44,9 +44,9 @@ class LevelDifferentiatingFormatter(logging.Formatter):
 
 
 logger = logging.getLogger('p4a')
-# Necessary as importlib reloads this,
-# which would add a second handler and reset the level
-if not hasattr(logger, 'touched'):
+if not hasattr(logger, 'touched'):  # Necessary as importlib reloads
+                                    # this, which would add a second
+                                    # handler and reset the level
     logger.setLevel(logging.INFO)
     logger.touched = True
     ch = logging.StreamHandler(stderr)

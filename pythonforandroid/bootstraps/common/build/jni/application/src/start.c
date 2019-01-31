@@ -67,7 +67,7 @@ int dir_exists(char *filename) {
 
 int file_exists(const char *filename) {
   FILE *file;
-  if ((file = fopen(filename, "r"))) {
+  if (file = fopen(filename, "r")) {
     fclose(file);
     return 1;
   }
@@ -84,64 +84,22 @@ int main(int argc, char *argv[]) {
   int ret = 0;
   FILE *fd;
 
-  LOGP("Initializing Python for Android");
-
-  // Set a couple of built-in environment vars:
   setenv("P4A_BOOTSTRAP", bootstrap_name, 1);  // env var to identify p4a to applications
+
+  LOGP("Initializing Python for Android");
   env_argument = getenv("ANDROID_ARGUMENT");
   setenv("ANDROID_APP_PATH", env_argument, 1);
   env_entrypoint = getenv("ANDROID_ENTRYPOINT");
   env_logname = getenv("PYTHON_NAME");
+
   if (!getenv("ANDROID_UNPACK")) {
     /* ANDROID_UNPACK currently isn't set in services */
     setenv("ANDROID_UNPACK", env_argument, 1);
   }
+  
   if (env_logname == NULL) {
     env_logname = "python";
     setenv("PYTHON_NAME", "python", 1);
-  }
-
-  // Set additional file-provided environment vars:
-  LOGP("Setting additional env vars from p4a_env_vars.txt");
-  char env_file_path[256];
-  snprintf(env_file_path, sizeof(env_file_path),
-           "%s/p4a_env_vars.txt", getenv("ANDROID_UNPACK"));
-  FILE *env_file_fd = fopen(env_file_path, "r");
-  if (env_file_fd) {
-    char* line = NULL;
-    size_t len = 0;
-    while (getline(&line, &len, env_file_fd) != -1) {
-      if (strlen(line) > 0) {
-        char *eqsubstr = strstr(line, "=");
-        if (eqsubstr) {
-          size_t eq_pos = eqsubstr - line;
-
-          // Extract name:
-          char env_name[256];
-          strncpy(env_name, line, sizeof(env_name));
-          env_name[eq_pos] = '\0';
-
-          // Extract value (with line break removed:
-          char env_value[256];
-          strncpy(env_value, (char*)(line + eq_pos + 1), sizeof(env_value));
-          if (strlen(env_value) > 0 &&
-              env_value[strlen(env_value)-1] == '\n') {
-            env_value[strlen(env_value)-1] = '\0';
-            if (strlen(env_value) > 0 &&
-                env_value[strlen(env_value)-1] == '\r') {
-              // Also remove windows line breaks (\r\n)
-              env_value[strlen(env_value)-1] = '\0';
-            } 
-          }
-
-          // Set value:
-          setenv(env_name, env_value, 1);
-        }
-      }
-    }
-    fclose(env_file_fd);
-  } else {
-    LOGP("Warning: no p4a_env_vars.txt found / failed to open!");
   }
 
   LOGP("Changing directory to the one provided by ANDROID_ARGUMENT");
@@ -152,11 +110,7 @@ int main(int argc, char *argv[]) {
   Py_NoSiteFlag=1;
 #endif
 
-#if PY_MAJOR_VERSION < 3
-  Py_SetProgramName("android_python");
-#else
   Py_SetProgramName(L"android_python");
-#endif
 
 #if PY_MAJOR_VERSION >= 3
   /* our logging module for android
@@ -309,11 +263,6 @@ int main(int argc, char *argv[]) {
   /* Get the entrypoint, search the .pyo then .py
    */
   char *dot = strrchr(env_entrypoint, '.');
-#if PY_MAJOR_VERSION > 2
-  char *ext = ".pyc";
-#else
-  char *ext = ".pyo";
-#endif
   if (dot <= 0) {
     LOGP("Invalid entrypoint, abort.");
     return -1;
@@ -322,14 +271,14 @@ int main(int argc, char *argv[]) {
       LOGP("Entrypoint path is too long, try increasing ENTRYPOINT_MAXLEN.");
       return -1;
   }
-  if (!strcmp(dot, ext)) {
+  if (!strcmp(dot, ".pyo")) {
     if (!file_exists(env_entrypoint)) {
       /* fallback on .py */
       strcpy(entrypoint, env_entrypoint);
       entrypoint[strlen(env_entrypoint) - 1] = '\0';
       LOGP(entrypoint);
       if (!file_exists(entrypoint)) {
-        LOGP("Entrypoint not found (.pyc/.pyo, fallback on .py), abort");
+        LOGP("Entrypoint not found (.pyo, fallback on .py), abort");
         return -1;
       }
     } else {
@@ -339,11 +288,7 @@ int main(int argc, char *argv[]) {
     /* if .py is passed, check the pyo version first */
     strcpy(entrypoint, env_entrypoint);
     entrypoint[strlen(env_entrypoint) + 1] = '\0';
-#if PY_MAJOR_VERSION > 2
-    entrypoint[strlen(env_entrypoint)] = 'c';
-#else
     entrypoint[strlen(env_entrypoint)] = 'o';
-#endif
     if (!file_exists(entrypoint)) {
       /* fallback on pure python version */
       if (!file_exists(env_entrypoint)) {
@@ -353,7 +298,7 @@ int main(int argc, char *argv[]) {
       strcpy(entrypoint, env_entrypoint);
     }
   } else {
-    LOGP("Entrypoint have an invalid extension (must be .py or .pyc/.pyo), abort.");
+    LOGP("Entrypoint have an invalid extension (must be .py or .pyo), abort.");
     return -1;
   }
   // LOGP("Entrypoint is:");
@@ -368,7 +313,6 @@ int main(int argc, char *argv[]) {
   /* run python !
    */
   ret = PyRun_SimpleFile(fd, entrypoint);
-  fclose(fd);
 
   if (PyErr_Occurred() != NULL) {
     ret = 1;
@@ -379,36 +323,12 @@ int main(int argc, char *argv[]) {
       PyErr_Clear();
   }
 
-  LOGP("Python for android ended.");
-
-  /* Shut down: since regular shutdown causes issues sometimes
-     (seems to be an incomplete shutdown breaking next launch)
-     we'll use sys.exit(ret) to shutdown, since that one works.
-
-     Reference discussion:
-
-     https://github.com/kivy/kivy/pull/6107#issue-246120816
+  /* close everything
    */
-  char terminatecmd[256];
-  snprintf(
-    terminatecmd, sizeof(terminatecmd),
-    "import sys; sys.exit(%d)\n", ret
-  );
-  PyRun_SimpleString(terminatecmd);
-
-  /* This should never actually be reached, but we'll leave the clean-up
-   * here just to be safe.
-   */
-#if PY_MAJOR_VERSION < 3
   Py_Finalize();
-  LOGP("Unexpectedly reached Py_FinalizeEx(), but was successful.");
-#else
-  if (Py_FinalizeEx() != 0)  // properly check success on Python 3
-    LOGP("Unexpectedly reached Py_FinalizeEx(), and got error!");
-  else
-    LOGP("Unexpectedly reached Py_FinalizeEx(), but was successful.");
-#endif
+  fclose(fd);
 
+  LOGP("Python for android ended.");
   return ret;
 }
 

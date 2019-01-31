@@ -5,7 +5,7 @@ class EthashRecipe(PythonRecipe):
 
     url = 'https://github.com/ethereum/ethash/archive/master.zip'
 
-    depends = ['setuptools']
+    depends = ['python2', 'setuptools']
 
 
 recipe = EthashRecipe()

@@ -67,7 +67,7 @@ supply those that you need.
   distribution must contain, as a comma separated list. These must be
   names of recipes or the pypi names of Python modules.
 
-``--force-build BOOL``
+``--force_build BOOL``
   Whether the distribution must be compiled from scratch.
 
 ``--arch``
