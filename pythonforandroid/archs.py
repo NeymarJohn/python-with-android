@@ -1,11 +1,11 @@
-from os.path import (exists, join, dirname, split)
+from distutils.spawn import find_executable
 from os import environ, uname
+from os.path import (exists, join, dirname, split)
 from glob import glob
 import sys
-from distutils.spawn import find_executable
 
 from pythonforandroid.recipe import Recipe
-from pythonforandroid.util import BuildInterruptingException
+from pythonforandroid.util import BuildInterruptingException, build_platform
 
 
 class Arch(object):
@@ -19,6 +19,12 @@ class Arch(object):
     def __init__(self, ctx):
         super(Arch, self).__init__()
         self.ctx = ctx
+
+        # Allows injecting additional linker paths used by any recipe.
+        # This can also be modified by recipes (like the librt recipe)
+        # to make sure that some sort of global resource is available &
+        # linked for all others.
+        self.extra_global_link_paths = []
 
     def __str__(self):
         return self.arch
@@ -51,11 +57,18 @@ class Arch(object):
             toolchain = '{android_host}-{toolchain_version}'.format(
                 android_host=self.ctx.toolchain_prefix,
                 toolchain_version=self.ctx.toolchain_version)
-            toolchain = join(self.ctx.ndk_dir, 'toolchains', toolchain, 'prebuilt', 'linux-x86_64')
+            toolchain = join(self.ctx.ndk_dir, 'toolchains', toolchain,
+                             'prebuilt', build_platform)
             cflags.append('-gcc-toolchain {}'.format(toolchain))
 
         env['CFLAGS'] = ' '.join(cflags)
-        env['LDFLAGS'] = ' '
+
+        # Link the extra global link paths first before anything else
+        # (such that overriding system libraries with them is possible)
+        env['LDFLAGS'] = ' ' + " ".join([
+            "-L'" + l.replace("'", "'\"'\"'") + "'"  # no shlex.quote in py2
+            for l in self.extra_global_link_paths
+        ]) + ' '
 
         sysroot = join(self.ctx._ndk_dir, 'sysroot')
         if exists(sysroot):
@@ -106,7 +119,7 @@ class Arch(object):
             llvm_dirname = split(
                 glob(join(self.ctx.ndk_dir, 'toolchains', 'llvm*'))[-1])[-1]
             clang_path = join(self.ctx.ndk_dir, 'toolchains', llvm_dirname,
-                              'prebuilt', 'linux-x86_64', 'bin')
+                              'prebuilt', build_platform, 'bin')
             environ['PATH'] = '{clang_path}:{path}'.format(
                 clang_path=clang_path, path=environ['PATH'])
             exe = join(clang_path, 'clang')

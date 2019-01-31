@@ -12,6 +12,7 @@ import shutil
 import fnmatch
 from os import listdir, unlink, environ, mkdir, curdir, walk
 from sys import stdout
+import time
 try:
     from urlparse import urlparse
 except ImportError:
@@ -145,7 +146,19 @@ class Recipe(with_metaclass(RecipeMeta)):
             if exists(target):
                 unlink(target)
 
-            urlretrieve(url, target, report_hook)
+            # Download item with multiple attempts (for bad connections):
+            attempts = 0
+            while True:
+                try:
+                    urlretrieve(url, target, report_hook)
+                except OSError as e:
+                    attempts += 1
+                    if attempts >= 5:
+                        raise e
+                    stdout.write('Download failed retrying in a second...')
+                    time.sleep(1)
+                    continue
+                break
             return target
         elif parsed_url.scheme in ('git', 'git+file', 'git+ssh', 'git+http', 'git+https'):
             if isdir(target):
@@ -166,14 +179,18 @@ class Recipe(with_metaclass(RecipeMeta)):
                         shprint(sh.git, 'submodule', 'update', '--recursive')
             return target
 
-    def apply_patch(self, filename, arch):
+    def apply_patch(self, filename, arch, build_dir=None):
         """
         Apply a patch from the current recipe directory into the current
         build directory.
+
+        .. versionchanged:: 0.6.0
+            Add ability to apply patch from any dir via kwarg `build_dir`'''
         """
         info("Applying patch {}".format(filename))
+        build_dir = build_dir if build_dir else self.get_build_dir(arch)
         filename = join(self.get_recipe_dir(), filename)
-        shprint(sh.patch, "-t", "-d", self.get_build_dir(arch), "-p1",
+        shprint(sh.patch, "-t", "-d", build_dir, "-p1",
                 "-i", filename, _tail=10)
 
     def copy_file(self, filename, dest):
@@ -223,6 +240,12 @@ class Recipe(with_metaclass(RecipeMeta)):
             if recipe in built_recipes:
                 recipes.append(recipe)
         return sorted(recipes)
+
+    def get_opt_depends_in_list(self, recipes):
+        '''Given a list of recipe names, returns those that are also in
+        self.opt_depends.
+        '''
+        return [recipe for recipe in recipes if recipe in self.opt_depends]
 
     def get_build_container_dir(self, arch):
         '''Given the arch name, returns the directory where it will be
@@ -376,15 +399,10 @@ class Recipe(with_metaclass(RecipeMeta)):
                         root_directory = fileh.filelist[0].filename.split('/')[0]
                         if root_directory != basename(directory_name):
                             shprint(sh.mv, root_directory, directory_name)
-                    elif (extraction_filename.endswith('.tar.gz') or
-                          extraction_filename.endswith('.tgz') or
-                          extraction_filename.endswith('.tar.bz2') or
-                          extraction_filename.endswith('.tbz2') or
-                          extraction_filename.endswith('.tar.xz') or
-                          extraction_filename.endswith('.txz')):
+                    elif extraction_filename.endswith(
+                            ('.tar.gz', '.tgz', '.tar.bz2', '.tbz2', '.tar.xz', '.txz')):
                         sh.tar('xf', extraction_filename)
-                        root_directory = shprint(
-                            sh.tar, 'tf', extraction_filename).stdout.decode(
+                        root_directory = sh.tar('tf', extraction_filename).stdout.decode(
                                 'utf-8').split('\n')[0].split('/')[0]
                         if root_directory != directory_name:
                             shprint(sh.mv, root_directory, directory_name)
@@ -428,8 +446,11 @@ class Recipe(with_metaclass(RecipeMeta)):
         build_dir = self.get_build_dir(arch.arch)
         return exists(join(build_dir, '.patched'))
 
-    def apply_patches(self, arch):
-        '''Apply any patches for the Recipe.'''
+    def apply_patches(self, arch, build_dir=None):
+        '''Apply any patches for the Recipe.
+
+        .. versionchanged:: 0.6.0
+            Add ability to apply patches from any dir via kwarg `build_dir`'''
         if self.patches:
             info_main('Applying patches for {}[{}]'
                       .format(self.name, arch.arch))
@@ -438,6 +459,7 @@ class Recipe(with_metaclass(RecipeMeta)):
                 info_main('{} already patched, skipping'.format(self.name))
                 return
 
+            build_dir = build_dir if build_dir else self.get_build_dir(arch.arch)
             for patch in self.patches:
                 if isinstance(patch, (tuple, list)):
                     patch, patch_check = patch
@@ -446,9 +468,9 @@ class Recipe(with_metaclass(RecipeMeta)):
 
                 self.apply_patch(
                         patch.format(version=self.version, arch=arch.arch),
-                        arch.arch)
+                        arch.arch, build_dir=build_dir)
 
-            shprint(sh.touch, join(self.get_build_dir(arch.arch), '.patched'))
+            shprint(sh.touch, join(build_dir, '.patched'))
 
     def should_build(self, arch):
         '''Should perform any necessary test and return True only if it needs
@@ -599,9 +621,7 @@ class BootstrapNDKRecipe(Recipe):
     :class:`~pythonforandroid.recipe.NDKRecipe`.
 
     To link with python, call the method :meth:`get_recipe_env`
-    with the kwarg *with_python=True*. If recipe contains android's mk files
-    which should be linked with python, you may want to use the env variables
-    MK_PYTHON_INCLUDE_ROOT and MK_PYTHON_LINK_ROOT set in there.
+    with the kwarg *with_python=True*.
     '''
 
     dir_name = None  # The name of the recipe build folder in the jni dir
@@ -630,16 +650,6 @@ class BootstrapNDKRecipe(Recipe):
             self.ctx.python_recipe.major_minor_version_string)
         if 'python3' in self.ctx.python_recipe.name:
             env['EXTRA_LDLIBS'] += 'm'
-
-        # set some env variables that may be needed to build some bootstrap ndk
-        # recipes that needs linking with our python via mk files, like
-        # recipes: sdl2, genericndkbuild or sdl
-        other_builds = join(self.ctx.build_dir, 'other_builds') + '/'
-        env['MK_PYTHON_INCLUDE_ROOT'] = \
-            self.ctx.python_recipe.include_root(arch.arch)[
-            len(other_builds):]
-        env['MK_PYTHON_LINK_ROOT'] = \
-            self.ctx.python_recipe.link_root(arch.arch)[len(other_builds):]
         return env
 
 
