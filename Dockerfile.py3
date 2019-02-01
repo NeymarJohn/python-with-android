@@ -6,7 +6,7 @@
 #     docker build --tag=p4a --file Dockerfile.py3 .
 #
 # Run with:
-#     docker run -it --rm p4apy3 /bin/sh -c '. venv/bin/activate && p4a apk --help'
+#     docker run -it --rm p4a /bin/sh -c '. venv/bin/activate && p4a apk --help'
 #
 # Or for interactive shell:
 #     docker run -it --rm p4a
@@ -18,6 +18,14 @@
 FROM ubuntu:18.04
 
 ENV ANDROID_HOME="/opt/android"
+
+# configure locale
+RUN apt update -qq > /dev/null && apt install -qq --yes --no-install-recommends \
+    locales && \
+    locale-gen en_US.UTF-8
+ENV LANG="en_US.UTF-8" \
+    LANGUAGE="en_US.UTF-8" \
+    LC_ALL="en_US.UTF-8"
 
 RUN apt -y update -qq \
     && apt -y install -qq --no-install-recommends curl unzip ca-certificates \
@@ -119,10 +127,8 @@ RUN echo "%sudo ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 RUN pip3 install --upgrade cython==0.28.6
 
 WORKDIR ${WORK_DIR}
-COPY . ${WORK_DIR}
-
-# user needs ownership/write access to these directories
-RUN chown --recursive ${USER} ${WORK_DIR} ${ANDROID_SDK_HOME}
+COPY --chown=user:user . ${WORK_DIR}
+RUN chown --recursive ${USER} ${ANDROID_SDK_HOME}
 USER ${USER}
 
 # install python-for-android from current branch
