@@ -39,13 +39,10 @@ class RecipeOrder(dict):
         return False
 
 
-def get_dependency_tuple_list_for_recipe(recipe, blacklist=None):
+def get_dependency_tuple_list_for_recipe(recipe, blacklist=[]):
     """ Get the dependencies of a recipe with filtered out blacklist, and
         turned into tuples with fix_deplist()
     """
-    if blacklist is None:
-        blacklist = set()
-    assert(type(blacklist) == set)
     if recipe.depends is None:
         dependencies = []
     else:
@@ -54,15 +51,14 @@ def get_dependency_tuple_list_for_recipe(recipe, blacklist=None):
 
         # Filter out blacklisted items and turn lowercase:
         dependencies = [
-            tuple(set(deptuple) - blacklist)
-            for deptuple in dependencies
-            if tuple(set(deptuple) - blacklist)
+            deptuple for deptuple in dependencies
+            if not set(deptuple).intersection(set(blacklist))
         ]
     return dependencies
 
 
 def recursively_collect_orders(
-        name, ctx, all_inputs, orders=None, blacklist=None
+        name, ctx, all_inputs, orders=[], blacklist=[]
         ):
     '''For each possible recipe ordering, try to add the new recipe name
     to that order. Recursively do the same thing with all the
@@ -70,10 +66,6 @@ def recursively_collect_orders(
 
     '''
     name = name.lower()
-    if orders is None:
-        orders = []
-    if blacklist is None:
-        blacklist = set()
     try:
         recipe = Recipe.get_recipe(name, ctx)
         dependencies = get_dependency_tuple_list_for_recipe(
@@ -83,8 +75,7 @@ def recursively_collect_orders(
         # handle opt_depends: these impose requirements on the build
         # order only if already present in the list of recipes to build
         dependencies.extend(fix_deplist(
-            [[d] for d in recipe.get_opt_depends_in_list(all_inputs)
-             if d.lower() not in blacklist]
+            [[d] for d in recipe.get_opt_depends_in_list(all_inputs)]
         ))
 
         if recipe.conflicts is None:
@@ -115,9 +106,7 @@ def recursively_collect_orders(
             dependency_new_orders = [new_order]
             for dependency in dependency_set:
                 dependency_new_orders = recursively_collect_orders(
-                    dependency, ctx, all_inputs, dependency_new_orders,
-                    blacklist=blacklist
-                )
+                    dependency, ctx, all_inputs, dependency_new_orders)
 
             new_orders.extend(dependency_new_orders)
 
@@ -143,7 +132,7 @@ def find_order(graph):
                 bset.discard(result)
 
 
-def obvious_conflict_checker(ctx, name_tuples, blacklist=None):
+def obvious_conflict_checker(ctx, name_tuples, blacklist=[]):
     """ This is a pre-flight check function that will completely ignore
         recipe order or choosing an actual value in any of the multiple
         choice tuples/dependencies, and just do a very basic obvious
@@ -151,8 +140,6 @@ def obvious_conflict_checker(ctx, name_tuples, blacklist=None):
     """
     deps_were_added_by = dict()
     deps = set()
-    if blacklist is None:
-        blacklist = set()
 
     # Add dependencies for all recipes:
     to_be_added = [(name_tuple, None) for name_tuple in name_tuples]
@@ -240,7 +227,7 @@ def obvious_conflict_checker(ctx, name_tuples, blacklist=None):
     return None
 
 
-def get_recipe_order_and_bootstrap(ctx, names, bs=None, blacklist=None):
+def get_recipe_order_and_bootstrap(ctx, names, bs=None, blacklist=[]):
     # Get set of recipe/dependency names, clean up and add bootstrap deps:
     names = set(names)
     if bs is not None and bs.recipe_depends:
@@ -249,9 +236,7 @@ def get_recipe_order_and_bootstrap(ctx, names, bs=None, blacklist=None):
         ([name] if not isinstance(name, (list, tuple)) else name)
         for name in names
     ])
-    if blacklist is None:
-        blacklist = set()
-    blacklist = {bitem.lower() for bitem in blacklist}
+    blacklist = [bitem.lower() for bitem in blacklist]
 
     # Remove all values that are in the blacklist:
     names_before_blacklist = list(names)
@@ -276,9 +261,7 @@ def get_recipe_order_and_bootstrap(ctx, names, bs=None, blacklist=None):
         new_possible_orders = [RecipeOrder(ctx)]
         for name in name_set:
             new_possible_orders = recursively_collect_orders(
-                name, ctx, name_set, orders=new_possible_orders,
-                blacklist=blacklist
-            )
+                name, ctx, name_set, orders=new_possible_orders)
         possible_orders.extend(new_possible_orders)
 
     # turn each order graph into a linear list if possible
@@ -322,8 +305,7 @@ def get_recipe_order_and_bootstrap(ctx, names, bs=None, blacklist=None):
                 "Could not find any compatible bootstrap!"
             )
         recipes, python_modules, bs = get_recipe_order_and_bootstrap(
-            ctx, chosen_order, bs=bs, blacklist=blacklist
-        )
+            ctx, chosen_order, bs=bs)
     else:
         # check if each requirement has a recipe
         recipes = []

@@ -23,7 +23,7 @@ class Python3Recipe(GuestPythonRecipe):
 
     patches = ["patches/fix-ctypes-util-find-library.patch"]
 
-    depends = ['hostpython3', 'sqlite3', 'openssl', 'libffi']
+    depends = ['hostpython3']
     conflicts = ['python3crystax', 'python2', 'python2legacy']
 
     configure_args = (
