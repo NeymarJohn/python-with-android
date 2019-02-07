@@ -24,6 +24,7 @@ BROKEN_RECIPES_PYTHON2 = set([
     'groestlcoin_hash',
     'hostpython3crystax',
     # https://github.com/kivy/python-for-android/issues/1354
+    'kivent_core', 'kivent_cymunk', 'kivent_particles', 'kivent_polygen',
     'kiwisolver',
     # https://github.com/kivy/python-for-android/issues/1399
     'libglob',
@@ -79,6 +80,7 @@ BROKEN_RECIPES_PYTHON3 = set([
     'ffpyplayer',
     'icu',
     # https://github.com/kivy/python-for-android/issues/1354
+    'kivent_core', 'kivent_cymunk', 'kivent_particles', 'kivent_polygen',
     # The opencv recipe fails to pass travis tests due to the long processing
     # when building it and the lack of console output, so, it's only broken
     # for travis, see: https://github.com/kivy/python-for-android/pull/1661
