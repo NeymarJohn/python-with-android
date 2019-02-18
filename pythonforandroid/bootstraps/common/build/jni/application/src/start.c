@@ -468,7 +468,7 @@ void Java_org_kivy_android_PythonActivity_nativeSetenv(
     const char *utfname = (*env)->GetStringUTFChars(env, name, NULL);
     const char *utfvalue = (*env)->GetStringUTFChars(env, value, NULL);
 
-    setenv(utfname, utfvalue, 1);
+    SDL_setenv(utfname, utfvalue, 1);
 
     (*env)->ReleaseStringUTFChars(env, name, utfname);
     (*env)->ReleaseStringUTFChars(env, value, utfvalue);
