@@ -30,7 +30,11 @@ public class PythonUtil {
         }
     }
 
-    protected static ArrayList<String> getLibraries(File libsDir) {
+    protected static ArrayList<String> getLibraries(File filesDir) {
+
+        String libsDirPath = filesDir.getParentFile().getParentFile().getAbsolutePath() + "/lib/";
+        File libsDir = new File(libsDirPath);
+
         ArrayList<String> libsList = new ArrayList<String>();
         addLibraryIfExists(libsList, "crystax", libsDir);
         addLibraryIfExists(libsList, "sqlite3", libsDir);
@@ -45,13 +49,14 @@ public class PythonUtil {
         return libsList;
     }
 
-    public static void loadLibraries(File filesDir, File libsDir) {
+	public static void loadLibraries(File filesDir) {
+
         String filesDirPath = filesDir.getAbsolutePath();
         boolean foundPython = false;
 
-        for (String lib : getLibraries(libsDir)) {
+		for (String lib : getLibraries(filesDir)) {
             Log.v(TAG, "Loading library: " + lib);
-            try {
+		    try {
                 System.loadLibrary(lib);
                 if (lib.startsWith("python")) {
                     foundPython = true;

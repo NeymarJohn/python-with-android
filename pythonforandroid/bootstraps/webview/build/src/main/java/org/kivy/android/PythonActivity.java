@@ -232,8 +232,7 @@ public class PythonActivity extends Activity {
     public void loadLibraries() {
         String app_root = new String(getAppRoot());
         File app_root_file = new File(app_root);
-        PythonUtil.loadLibraries(app_root_file,
-            new File(getApplicationInfo().nativeLibraryDir));
+        PythonUtil.loadLibraries(app_root_file);
     }
 
     public void recursiveDelete(File f) {
