@@ -6,9 +6,7 @@ from os.path import join
 
 
 class PyjniusRecipe(CythonRecipe):
-    # "6553ad4" is one commit after last release (1.2.0)
-    # it fixes method resolution, required for resolving requestPermissions()
-    version = '6553ad4'
+    version = '1.1.3'
     url = 'https://github.com/kivy/pyjnius/archive/{version}.zip'
     name = 'pyjnius'
     depends = [('genericndkbuild', 'sdl2', 'sdl'), 'six']

@@ -421,13 +421,9 @@ class Permission:
         )
 
 
-def request_permissions(permissions):
-    python_activity = autoclass('org.kivy.android.PythonActivity')
-    python_activity.requestPermissions(permissions)
-
-
 def request_permission(permission):
-    request_permissions([permission])
+    python_activity = autoclass('org.kivy.android.PythonActivity')
+    python_activity.requestNewPermission(permission + "")
 
 
 def check_permission(permission):
