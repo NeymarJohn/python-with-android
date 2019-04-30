@@ -136,31 +136,15 @@ def test_get_dep_names_of_package():
 
 
 def test_transform_dep_for_pip():
-    # A reminder, this entire function we test here is just a workaround
-    # for https://github.com/pypa/pip/issues/6097 (and not a nice one.)
-    # As soon as upstream fixes it, we should throw it & this test out
-    transformed = (
-        transform_dep_for_pip(
-            "python-for-android @ https://github.com/kivy/" +
-            "python-for-android/archive/master.zip"
-        ),
-        transform_dep_for_pip(
-            "python-for-android @ https://github.com/kivy/" +
-            "python-for-android/archive/master.zip" +
-            "#egg=python-for-android-master"
-        ),
-        transform_dep_for_pip(
-            "python-for-android @ https://github.com/kivy/" +
-            "python-for-android/archive/master.zip" +
-            "#"  # common hack variant used by others to make pip parse it
-        ),
+    transformed = transform_dep_for_pip(
+        "python-for-android @ https://github.com/kivy/"
+        "python-for-android/archive/master.zip"
     )
     expected = (
-        "https://github.com/kivy/python-for-android/archive/master.zip" +
-        "#egg=python-for-android"
+        "https://github.com/kivy/python-for-android/archive/master.zip"
+        "#egg-name=python-for-android"
     )
-    assert transformed == (expected, expected, expected)
-    assert transform_dep_for_pip("https://a@b/") == "https://a@b/"
+    assert transformed == expected
 
 
 def test_is_filesystem_path():
