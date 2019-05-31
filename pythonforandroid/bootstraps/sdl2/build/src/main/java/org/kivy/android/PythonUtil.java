@@ -34,7 +34,6 @@ public class PythonUtil {
         addLibraryIfExists(libsList, "crystax", libsDir);
         addLibraryIfExists(libsList, "sqlite3", libsDir);
         addLibraryIfExists(libsList, "ffi", libsDir);
-        addLibraryIfExists(libsList, "png16", libsDir);
         libsList.add("SDL2");
         libsList.add("SDL2_image");
         libsList.add("SDL2_mixer");
