@@ -1,12 +1,6 @@
 
-# This test is still expected to support Python 2, as it tests
-# on-Android functionality that we still maintain
-try:  # Python 3+
-    from unittest import mock
-    from unittest.mock import MagicMock
-except ImportError:  # Python 2
-    import mock
-    from mock import MagicMock
+import mock
+from mock import MagicMock
 import os
 import shutil
 import sys

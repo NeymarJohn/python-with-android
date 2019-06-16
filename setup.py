@@ -17,7 +17,6 @@ package_data = {'': ['*.tmpl',
 data_files = []
 
 
-
 # must be a single statement since buildozer is currently parsing it, refs:
 # https://github.com/kivy/buildozer/issues/722
 install_reqs = [
@@ -95,15 +94,15 @@ setup(name='python-for-android',
       install_requires=install_reqs,
       entry_points={
           'console_scripts': [
-              'python-for-android = pythonforandroid.entrypoints:main',
-              'p4a = pythonforandroid.entrypoints:main',
+              'python-for-android = pythonforandroid.toolchain:main',
+              'p4a = pythonforandroid.toolchain:main',
               ],
           'distutils.commands': [
               'apk = pythonforandroid.bdistapk:BdistAPK',
               ],
           },
       classifiers = [
-          'Development Status :: 5 - Production/Stable',
+          'Development Status :: 4 - Beta',
           'Intended Audience :: Developers',
           'License :: OSI Approved :: MIT License',
           'Operating System :: Microsoft :: Windows',
@@ -112,6 +111,7 @@ setup(name='python-for-android',
           'Operating System :: MacOS :: MacOS X',
           'Operating System :: Android',
           'Programming Language :: C',
+          'Programming Language :: Python :: 2',
           'Programming Language :: Python :: 3',
           'Topic :: Software Development',
           'Topic :: Utilities',

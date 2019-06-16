@@ -1,7 +1,7 @@
 from os.path import join, exists
 from pythonforandroid.recipe import Recipe
 from pythonforandroid.python import GuestPythonRecipe
-from pythonforandroid.logger import shprint, warning
+from pythonforandroid.logger import shprint
 import sh
 
 
@@ -56,11 +56,6 @@ class Python2Recipe(GuestPythonRecipe):
         if 'openssl' in self.ctx.recipe_build_order and not exists(patch_mark):
             self.apply_patch(join('patches', 'enable-openssl.patch'), arch.arch)
             shprint(sh.touch, patch_mark)
-
-    def build_arch(self, arch):
-        warning('DEPRECATION: Support for the Python 2 recipe will be '
-                'removed in 2020, please upgrade to Python 3.')
-        super().build_arch(arch)
 
     def set_libs_flags(self, env, arch):
         env = super(Python2Recipe, self).set_libs_flags(env, arch)

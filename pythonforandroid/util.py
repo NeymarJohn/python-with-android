@@ -3,16 +3,17 @@ from os.path import exists, join
 from os import getcwd, chdir, makedirs, walk, uname
 import sh
 import shutil
+import sys
 from fnmatch import fnmatch
 from tempfile import mkdtemp
-
-# This Python version workaround left for compatibility during initial version check
-try:  # Python 3
+try:
     from urllib.request import FancyURLopener
-except ImportError:  # Python 2
+except ImportError:
     from urllib import FancyURLopener
 
 from pythonforandroid.logger import (logger, Err_Fore, error, info)
+
+IS_PY3 = sys.version_info[0] >= 3
 
 
 class WgetDownloader(FancyURLopener):
