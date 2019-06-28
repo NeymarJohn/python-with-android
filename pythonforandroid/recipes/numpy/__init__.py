@@ -5,21 +5,18 @@ from os.path import join
 
 class NumpyRecipe(CompiledComponentsPythonRecipe):
 
-    version = '1.16.4'
+    version = '1.15.1'
     url = 'https://pypi.python.org/packages/source/n/numpy/numpy-{version}.zip'
     site_packages_name = 'numpy'
     depends = [('python2', 'python3', 'python3crystax')]
 
     patches = [
-        join('patches', 'add_libm_explicitly_to_build.patch'),
-        join('patches', 'do_not_use_system_libs.patch'),
-        join('patches', 'remove_unittest_call.patch'),
+        join('patches', 'fix-numpy.patch'),
+        join('patches', 'prevent_libs_check.patch'),
         join('patches', 'ar.patch'),
-        join('patches', 'fix_setup_dependencies.patch'),
-        join('patches', 'fix_environment_detection.patch'),
-        ]
-
-    call_hostpython_via_targetpython = False
+        join('patches', 'lib.patch'),
+        join('patches', 'python-fixes.patch')
+    ]
 
     def build_compiled_components(self, arch):
         self.setup_extra_args = ['-j', str(cpu_count())]
@@ -55,7 +52,6 @@ class NumpyRecipe(CompiledComponentsPythonRecipe):
             env['CC'] += flags
         if flags not in env['LD']:
             env['LD'] += flags + ' -shared'
-
         return env
 
 
