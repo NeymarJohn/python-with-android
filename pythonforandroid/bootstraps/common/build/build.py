@@ -332,7 +332,9 @@ main.py that loads it.''')
                     shutil.copyfile(join(args.private, "main.py"),
                                     join(main_py_only_dir, "main.py"))
                 tar_dirs.append(main_py_only_dir)
-        for python_bundle_dir in ('private', '_python_bundle'):
+        for python_bundle_dir in ('private',
+                                  'crystax_python',
+                                  '_python_bundle'):
             if exists(python_bundle_dir):
                 tar_dirs.append(python_bundle_dir)
         if get_bootstrap_name() == "webview":
@@ -781,13 +783,14 @@ tools directory of the Android SDK.
     if args.try_system_python_compile:
         # Hardcoding python2.7 is okay for now, as python3 skips the
         # compilation anyway
-        python_executable = 'python2.7'
-        try:
-            subprocess.call([python_executable, '--version'])
-        except (OSError, subprocess.CalledProcessError):
-            pass
-        else:
-            PYTHON = python_executable
+        if not exists('crystax_python'):
+            python_executable = 'python2.7'
+            try:
+                subprocess.call([python_executable, '--version'])
+            except (OSError, subprocess.CalledProcessError):
+                pass
+            else:
+                PYTHON = python_executable
 
     if args.no_compile_pyo:
         PYTHON = None
