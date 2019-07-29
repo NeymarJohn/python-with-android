@@ -38,7 +38,6 @@ Contents
    troubleshooting
    docker
    contribute
-   testing_pull_requests
 
 
 Indices and tables

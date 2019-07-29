@@ -80,7 +80,10 @@ class Bootstrap(object):
     distribution = None
 
     # All bootstraps should include Python in some way:
-    recipe_depends = [("python2", "python3"), 'android']
+    recipe_depends = [
+        ("python2", "python3", "python3crystax"),
+        'android',
+    ]
 
     can_be_chosen_automatically = True
     '''Determines whether the bootstrap can be chosen as one that
@@ -342,6 +345,9 @@ class Bootstrap(object):
 
     def strip_libraries(self, arch):
         info('Stripping libraries')
+        if self.ctx.python_recipe.from_crystax:
+            info('Python was loaded from CrystaX, skipping strip')
+            return
         env = arch.get_env()
         tokens = shlex.split(env['STRIP'])
         strip = sh.Command(tokens[0])

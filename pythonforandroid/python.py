@@ -49,9 +49,13 @@ class GuestPythonRecipe(TargetPythonRecipe):
         this limitation.
     '''
 
+    from_crystax = False
+    '''True if the python is used from CrystaX, False otherwise (i.e. if
+    it is built by p4a).'''
+
     configure_args = ()
     '''The configure arguments needed to build the python recipe. Those are
-    used in method :meth:`build_arch` (if not overwritten like python3's
+    used in method :meth:`build_arch` (if not overwritten like python3crystax's
     recipe does).
 
     .. note:: This variable should be properly set in subclass.
@@ -104,6 +108,10 @@ class GuestPythonRecipe(TargetPythonRecipe):
         super(GuestPythonRecipe, self).__init__(*args, **kwargs)
 
     def get_recipe_env(self, arch=None, with_flags_in_cc=True):
+        if self.from_crystax:
+            return super(GuestPythonRecipe, self).get_recipe_env(
+                arch=arch, with_flags_in_cc=with_flags_in_cc)
+
         env = environ.copy()
 
         android_host = env['HOSTARCH'] = arch.command_prefix
@@ -207,6 +215,10 @@ class GuestPythonRecipe(TargetPythonRecipe):
 
     def prebuild_arch(self, arch):
         super(TargetPythonRecipe, self).prebuild_arch(arch)
+        if self.from_crystax and self.ctx.ndk != 'crystax':
+            raise BuildInterruptingException(
+                'The {} recipe can only be built when using the CrystaX NDK. '
+                'Exiting.'.format(self.name))
         self.ctx.python_recipe = self
 
     def build_arch(self, arch):
