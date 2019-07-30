@@ -739,6 +739,15 @@ class ToolchainCL(object):
                 sys.argv.append(arg)
 
     def recipes(self, args):
+        """
+        Prints recipes basic info, e.g.
+        ```
+        python3      3.7.1
+            depends: ['hostpython3', 'sqlite3', 'openssl', 'libffi']
+            conflicts: ['python2']
+            optional depends: ['sqlite3', 'libffi', 'openssl']
+        ```
+        """
         ctx = self.ctx
         if args.compact:
             print(" ".join(set(Recipe.list_recipes(ctx))))
@@ -982,7 +991,7 @@ class ToolchainCL(object):
                 gradlew = sh.Command('./gradlew')
                 if exists('/usr/bin/dos2unix'):
                     # .../dists/bdisttest_python3/gradlew
-                    # .../build/bootstrap_builds/sdl2-python3crystax/gradlew
+                    # .../build/bootstrap_builds/sdl2-python3/gradlew
                     # if docker on windows, gradle contains CRLF
                     output = shprint(
                         sh.Command('dos2unix'), gradlew._path.decode('utf8'),
