@@ -83,9 +83,6 @@ class Context(object):
     '''A build context. If anything will be built, an instance this class
     will be instantiated and used to hold all the build state.'''
 
-    # Whether to build with debugging symbols
-    build_as_debuggable = False
-
     env = environ.copy()
     # the filepath of toolchain.py
     root_dir = None
@@ -604,6 +601,8 @@ def build_recipes(build_order, python_modules, ctx, project_dir,
         ignore_setup_py=ignore_project_setup_py
     )
 
+    return
+
 
 def project_has_setup_py(project_dir):
     if project_dir is not None and \
@@ -848,10 +847,8 @@ def run_pymodules_install(ctx, modules, project_dir=None,
                 )
 
         # Strip object files after potential Cython or native code builds:
-        if not ctx.build_as_debuggable:
-            standard_recipe.strip_object_files(
-                ctx.archs[0], env, build_dir=ctx.build_dir
-            )
+        standard_recipe.strip_object_files(ctx.archs[0], env,
+                                           build_dir=ctx.build_dir)
 
 
 def biglink(ctx, arch):

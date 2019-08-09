@@ -47,8 +47,7 @@ class SDL2GradleBootstrap(Bootstrap):
                 with open('blacklist.txt', 'a') as fileh:
                     fileh.write('\nsqlite3/*\nlib-dynload/_sqlite3.so\n')
 
-        if not self.ctx.build_as_debuggable:
-            self.strip_libraries(arch)
+        self.strip_libraries(arch)
         self.fry_eggs(site_packages_dir)
         super(SDL2GradleBootstrap, self).run_distribute()
 

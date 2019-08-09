@@ -12,7 +12,8 @@ from pythonforandroid import __version__
 from pythonforandroid.pythonpackage import get_dep_names_of_package
 from pythonforandroid.recommendations import (
     RECOMMENDED_NDK_API, RECOMMENDED_TARGET_API)
-from pythonforandroid.util import BuildInterruptingException, handle_build_exception
+from pythonforandroid.util import BuildInterruptingException
+from pythonforandroid.entrypoints import main
 
 
 def check_python_dependencies():
@@ -193,10 +194,6 @@ def build_dist_from_args(ctx, dist, args):
         ctx.recipe_build_order))
     info('Dist will also contain modules ({}) installed from pip'.format(
         ', '.join(ctx.python_modules)))
-    if hasattr(args, "build_mode") and args.build_mode == "debug":
-        info('Building WITH debugging symbols (no --release option used)')
-    else:
-        info('Building WITHOUT debugging symbols (--release option used)')
 
     ctx.dist_name = bs.distribution.name
     ctx.prepare_bootstrap(bs)
@@ -499,8 +496,7 @@ class ToolchainCL(object):
         parser_apk.add_argument(
             '--release', dest='build_mode', action='store_const',
             const='release', default='debug',
-            help='Build your app as a non-debug release build. '
-                 '(Disables gdb debugging among other things)')
+            help='Build the PARSER_APK. in Release mode')
         parser_apk.add_argument(
             '--use-setup-py', dest="use_setup_py",
             action='store_true', default=False,
@@ -573,11 +569,10 @@ class ToolchainCL(object):
 
         args, unknown = parser.parse_known_args(sys.argv[1:])
         args.unknown_args = unknown
+
         if hasattr(args, "private") and args.private is not None:
             # Pass this value on to the internal bootstrap build.py:
             args.unknown_args += ["--private", args.private]
-        if hasattr(args, "build_mode") and args.build_mode == "release":
-            args.unknown_args += ["--release"]
         if hasattr(args, "ignore_setup_py") and args.ignore_setup_py:
             args.use_setup_py = False
 
@@ -594,9 +589,6 @@ class ToolchainCL(object):
 
         self.ctx = Context()
         self.ctx.use_setup_py = getattr(args, "use_setup_py", True)
-        self.ctx.build_as_debuggable = getattr(
-            args, "build_mode", "debug"
-        ) == "debug"
 
         have_setup_py_or_similar = False
         if getattr(args, "private", None) is not None:
@@ -751,12 +743,11 @@ class ToolchainCL(object):
     def recipes(self, args):
         """
         Prints recipes basic info, e.g.
-        ```
-        python3      3.7.1
-            depends: ['hostpython3', 'sqlite3', 'openssl', 'libffi']
-            conflicts: ['python2']
-            optional depends: ['sqlite3', 'libffi', 'openssl']
-        ```
+        .. code-block:: bash
+            python3      3.7.1
+                depends: ['hostpython3', 'sqlite3', 'openssl', 'libffi']
+                conflicts: ['python2']
+                optional depends: ['sqlite3', 'libffi', 'openssl']
         """
         ctx = self.ctx
         if args.compact:
@@ -963,9 +954,7 @@ class ToolchainCL(object):
         with current_directory(dist.dist_dir):
             self.hook("before_apk_build")
             os.environ["ANDROID_API"] = str(self.ctx.android_api)
-            build_args = build.parse_args_and_make_package(
-                args.unknown_args
-            )
+            build_args = build.parse_args(args.unknown_args)
             self.hook("after_apk_build")
             self.hook("before_apk_assemble")
 
@@ -1015,9 +1004,7 @@ class ToolchainCL(object):
                     gradle_task = "assembleRelease"
                 else:
                     raise BuildInterruptingException(
-                        "Unknown build mode {} for apk()".
-                        format(args.build_mode)
-                    )
+                        "Unknown build mode {} for apk()".format(args.build_mode))
                 output = shprint(gradlew, gradle_task, _tail=20,
                                  _critical=True, _env=env)
 
@@ -1199,13 +1186,6 @@ class ToolchainCL(object):
                         '{Fore.RESET})').format(Fore=Out_Fore)
                 recipe_str += '{Style.RESET_ALL}'.format(Style=Out_Style)
                 print(recipe_str)
-
-
-def main():
-    try:
-        ToolchainCL()
-    except BuildInterruptingException as exc:
-        handle_build_exception(exc)
 
 
 if __name__ == "__main__":
