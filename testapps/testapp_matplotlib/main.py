@@ -31,7 +31,6 @@ fig.savefig('test.png')
 print('saved fig')
 
 from kivy.app import App
-from kivy.base import runTouchApp
 from kivy.uix.image import Image
 from kivy.lang import Builder
 

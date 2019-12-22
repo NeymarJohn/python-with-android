@@ -26,16 +26,12 @@ from flask import (Flask, url_for, render_template, request, redirect,
 print('imported flask etc')
 print('importing pyjnius')
 
-from jnius import autoclass, cast
-
-ANDROID_VERSION = autoclass('android.os.Build$VERSION')
-SDK_INT = ANDROID_VERSION.SDK_INT
+from jnius import autoclass
 Context = autoclass('android.content.Context')
 PythonActivity = autoclass('org.kivy.android.PythonActivity')
 activity = PythonActivity.mActivity
 
-vibrator_service = activity.getSystemService(Context.VIBRATOR_SERVICE)
-vibrator = cast("android.os.Vibrator", vibrator_service)
+vibrator = activity.getSystemService(Context.VIBRATOR_SERVICE)
 
 ActivityInfo = autoclass('android.content.pm.ActivityInfo')
 
@@ -54,20 +50,7 @@ def vibrate():
         print('ERROR: asked to vibrate but without time argument')
     print('asked to vibrate', args['time'])
 
-    if vibrator and SDK_INT >= 26:
-        print("Using android's `VibrationEffect` (SDK >= 26)")
-        VibrationEffect = autoclass("android.os.VibrationEffect")
-        vibrator.vibrate(
-            VibrationEffect.createOneShot(
-                int(float(args['time']) * 1000),
-                VibrationEffect.DEFAULT_AMPLITUDE,
-            ),
-        )
-    elif vibrator:
-        print("Using deprecated android's vibrate (SDK < 26)")
-        vibrator.vibrate(int(float(args['time']) * 1000))
-    else:
-        print('Something happened...vibrator service disabled?')
+    vibrator.vibrate(float(args['time']) * 1000)
     print('vibrated')
 
 @app.route('/loadUrl')
