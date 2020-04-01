@@ -4,7 +4,7 @@ import sh
 
 
 class FFMpegRecipe(Recipe):
-    version = '007e03348dbd8d3de3eb09022d72c734a8608144'
+    version = 'n3.4.5'
     # Moved to github.com instead of ffmpeg.org to improve download speed
     url = 'https://github.com/FFmpeg/FFmpeg/archive/{version}.zip'
     depends = ['sdl2']  # Need this to build correct recipe order
@@ -19,7 +19,7 @@ class FFMpegRecipe(Recipe):
         self.apply_patches(arch)
 
     def get_recipe_env(self, arch):
-        env = super().get_recipe_env(arch)
+        env = super(FFMpegRecipe, self).get_recipe_env(arch)
         env['NDK'] = self.ctx.ndk_dir
         return env
 
@@ -37,17 +37,14 @@ class FFMpegRecipe(Recipe):
                     '--enable-nonfree',
                     '--enable-protocol=https,tls_openssl',
                 ]
-                build_dir = Recipe.get_recipe(
-                    'openssl', self.ctx).get_build_dir(arch.arch)
-                cflags += ['-I' + build_dir + '/include/',
-                           '-DOPENSSL_API_COMPAT=0x10002000L']
+                build_dir = Recipe.get_recipe('openssl', self.ctx).get_build_dir(arch.arch)
+                cflags += ['-I' + build_dir + '/include/']
                 ldflags += ['-L' + build_dir]
 
             if 'ffpyplayer_codecs' in self.ctx.recipe_build_order:
                 # libx264
                 flags += ['--enable-libx264']
-                build_dir = Recipe.get_recipe(
-                    'libx264', self.ctx).get_build_dir(arch.arch)
+                build_dir = Recipe.get_recipe('libx264', self.ctx).get_build_dir(arch.arch)
                 cflags += ['-I' + build_dir + '/include/']
                 ldflags += ['-lx264', '-L' + build_dir + '/lib/']
 
@@ -56,7 +53,6 @@ class FFMpegRecipe(Recipe):
                 build_dir = Recipe.get_recipe('libshine', self.ctx).get_build_dir(arch.arch)
                 cflags += ['-I' + build_dir + '/include/']
                 ldflags += ['-lshine', '-L' + build_dir + '/lib/']
-                ldflags += ['-lm']
 
                 # Enable all codecs:
                 flags += [
@@ -83,20 +79,22 @@ class FFMpegRecipe(Recipe):
 
             # disable binaries / doc
             flags += [
-                '--disable-programs',
+                '--disable-ffmpeg',
+                '--disable-ffplay',
+                '--disable-ffprobe',
+                '--disable-ffserver',
                 '--disable-doc',
             ]
 
             # other flags:
             flags += [
                 '--enable-filter=aresample,resample,crop,adelay,volume,scale',
-                '--enable-protocol=file,http,hls',
+                '--enable-protocol=file,http',
                 '--enable-small',
                 '--enable-hwaccels',
                 '--enable-gpl',
                 '--enable-pic',
                 '--disable-static',
-                '--disable-debug',
                 '--enable-shared',
             ]
 
@@ -110,13 +108,9 @@ class FFMpegRecipe(Recipe):
             # android:
             flags += [
                 '--target-os=android',
-                '--enable-cross-compile',
-                '--cross-prefix={}-'.format(arch.target),
+                '--cross-prefix={}'.format(cross_prefix),
                 '--arch={}'.format(arch_flag),
-                '--strip={}strip'.format(cross_prefix),
-                '--sysroot={}'.format(join(self.ctx.ndk_dir, 'toolchains',
-                                           'llvm', 'prebuilt', 'linux-x86_64',
-                                           'sysroot')),
+                '--sysroot=' + self.ctx.ndk_platform,
                 '--enable-neon',
                 '--prefix={}'.format(realpath('.')),
             ]

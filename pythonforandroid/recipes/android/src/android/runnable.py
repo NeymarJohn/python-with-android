@@ -1,17 +1,14 @@
 '''
 Runnable
 ========
+
 '''
 
 from jnius import PythonJavaClass, java_method, autoclass
 from android.config import JAVA_NAMESPACE
 
-# Reference to the activity
+# reference to the activity
 _PythonActivity = autoclass(JAVA_NAMESPACE + '.PythonActivity')
-
-# Cache of functions table. In older Android versions the number of JNI references
-# is limited, so by caching them we avoid running out.
-__functionstable__ = {}
 
 
 class Runnable(PythonJavaClass):
@@ -23,7 +20,7 @@ class Runnable(PythonJavaClass):
     __runnables__ = []
 
     def __init__(self, func):
-        super().__init__()
+        super(Runnable, self).__init__()
         self.func = func
 
     def __call__(self, *args, **kwargs):
@@ -47,12 +44,6 @@ def run_on_ui_thread(f):
     '''Decorator to create automatically a :class:`Runnable` object with the
     function. The function will be delayed and call into the Activity thread.
     '''
-    if f not in __functionstable__:
-        rfunction = Runnable(f)  # store the runnable function
-        __functionstable__[f] = {"rfunction": rfunction}
-    rfunction = __functionstable__[f]["rfunction"]
-
     def f2(*args, **kwargs):
-        rfunction(*args, **kwargs)
-
+        Runnable(f)(*args, **kwargs)
     return f2

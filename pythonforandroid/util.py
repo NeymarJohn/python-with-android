@@ -6,7 +6,11 @@ import shutil
 from fnmatch import fnmatch
 from tempfile import mkdtemp
 
-from urllib.request import FancyURLopener
+# This Python version workaround left for compatibility during initial version check
+try:  # Python 3
+    from urllib.request import FancyURLopener
+except ImportError:  # Python 2
+    from urllib import FancyURLopener
 
 from pythonforandroid.logger import (logger, Err_Fore, error, info)
 
@@ -98,7 +102,7 @@ def walk_valid_filens(base_dir, invalid_dir_names, invalid_file_patterns):
 
 class BuildInterruptingException(Exception):
     def __init__(self, message, instructions=None):
-        super().__init__(message, instructions)
+        super(BuildInterruptingException, self).__init__(message, instructions)
         self.message = message
         self.instructions = instructions
 

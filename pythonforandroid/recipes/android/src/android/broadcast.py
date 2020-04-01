@@ -20,7 +20,7 @@ class BroadcastReceiver(object):
             self.callback(context, intent)
 
     def __init__(self, callback, actions=None, categories=None):
-        super().__init__()
+        super(BroadcastReceiver, self).__init__()
         self.callback = callback
 
         if not actions and not categories:

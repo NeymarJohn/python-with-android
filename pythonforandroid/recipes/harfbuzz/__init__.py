@@ -20,13 +20,13 @@ class HarfbuzzRecipe(Recipe):
         https://sourceforge.net/projects/freetype/files/freetype2/2.5.3/
     """
 
-    version = '2.6.4'
-    url = 'http://www.freedesktop.org/software/harfbuzz/release/harfbuzz-{version}.tar.xz'  # noqa
+    version = '0.9.40'
+    url = 'http://www.freedesktop.org/software/harfbuzz/release/harfbuzz-{version}.tar.bz2'  # noqa
     opt_depends = ['freetype']
     built_libraries = {'libharfbuzz.so': 'src/.libs'}
 
     def get_recipe_env(self, arch=None):
-        env = super().get_recipe_env(arch)
+        env = super(HarfbuzzRecipe, self).get_recipe_env(arch)
         if 'freetype' in self.ctx.recipe_build_order:
             freetype = self.get_recipe('freetype', self.ctx)
             freetype_install = join(
@@ -50,6 +50,7 @@ class HarfbuzzRecipe(Recipe):
             configure = sh.Command('./configure')
             shprint(
                 configure,
+                '--without-icu',
                 '--host={}'.format(arch.command_prefix),
                 '--prefix={}'.format(self.get_build_dir(arch.arch)),
                 '--with-freetype={}'.format(
@@ -57,10 +58,7 @@ class HarfbuzzRecipe(Recipe):
                     if 'freetype' in self.ctx.recipe_build_order
                     else 'no'
                 ),
-                '--with-icu=no',
-                '--with-cairo=no',
-                '--with-fontconfig=no',
-                '--with-glib=no',
+                '--without-glib',
                 _env=env,
             )
             shprint(sh.make, '-j', str(cpu_count()), _env=env)

@@ -2,7 +2,6 @@ import os
 import unittest
 from os import environ
 from unittest import mock
-from platform import system
 
 from pythonforandroid.bootstrap import Bootstrap
 from pythonforandroid.distribution import Distribution
@@ -71,8 +70,8 @@ class ArchSetUpBaseClass(object):
         # Here we define the expected compiler, which, as per ndk >= r19,
         # should be the same for all the tests (no more gcc compiler)
         self.expected_compiler = (
-            f"/opt/android/android-ndk/toolchains/"
-            f"llvm/prebuilt/{system().lower()}-x86_64/bin/clang"
+            "/opt/android/android-ndk/toolchains/"
+            "llvm/prebuilt/linux-x86_64/bin/clang"
         )
 
 

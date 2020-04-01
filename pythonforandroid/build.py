@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from os.path import (
     abspath, join, realpath, dirname, expanduser, exists,
     split, isdir
@@ -77,7 +79,7 @@ def get_available_apis(sdk_dir):
     return apis
 
 
-class Context:
+class Context(object):
     '''A build context. If anything will be built, an instance this class
     will be instantiated and used to hold all the build state.'''
 
@@ -130,33 +132,34 @@ class Context:
     @property
     def libs_dir(self):
         # Was previously hardcoded as self.build_dir/libs
-        directory = join(self.build_dir, 'libs_collections',
-                         self.bootstrap.distribution.name)
-        ensure_dir(directory)
-        return directory
+        dir = join(self.build_dir, 'libs_collections',
+                   self.bootstrap.distribution.name)
+        ensure_dir(dir)
+        return dir
 
     @property
     def javaclass_dir(self):
         # Was previously hardcoded as self.build_dir/java
-        directory = join(self.build_dir, 'javaclasses',
-                         self.bootstrap.distribution.name)
-        ensure_dir(directory)
-        return directory
+        dir = join(self.build_dir, 'javaclasses',
+                   self.bootstrap.distribution.name)
+        ensure_dir(dir)
+        return dir
 
     @property
     def aars_dir(self):
-        directory = join(self.build_dir, 'aars', self.bootstrap.distribution.name)
-        ensure_dir(directory)
-        return directory
+        dir = join(self.build_dir, 'aars', self.bootstrap.distribution.name)
+        ensure_dir(dir)
+        return dir
 
     @property
     def python_installs_dir(self):
-        directory = join(self.build_dir, 'python-installs')
-        ensure_dir(directory)
-        return directory
+        dir = join(self.build_dir, 'python-installs')
+        ensure_dir(dir)
+        return dir
 
     def get_python_install_dir(self):
-        return join(self.python_installs_dir, self.bootstrap.distribution.name)
+        dir = join(self.python_installs_dir, self.bootstrap.distribution.name)
+        return dir
 
     def setup_dirs(self, storage_dir):
         '''Calculates all the storage and build dirs, and makes sure
@@ -261,7 +264,7 @@ class Context:
             possible_dirs = glob.glob(expanduser(join(
                 '~', '.buildozer', 'android', 'platform', 'android-sdk-*')))
             possible_dirs = [d for d in possible_dirs if not
-                             d.endswith(('.bz2', '.gz'))]
+                             (d.endswith('.bz2') or d.endswith('.gz'))]
             if possible_dirs:
                 info('Found possible SDK dirs in buildozer dir: {}'.format(
                     ', '.join([d.split(os.sep)[-1] for d in possible_dirs])))
@@ -424,13 +427,15 @@ class Context:
         for executable in ("pkg-config", "autoconf", "automake", "libtoolize",
                            "tar", "bzip2", "unzip", "make", "gcc", "g++"):
             if not sh.which(executable):
-                warning(f"Missing executable: {executable} is not installed")
+                warning("Missing executable: {} is not installed".format(
+                    executable))
 
         if not ok:
             raise BuildInterruptingException(
                 'python-for-android cannot continue due to the missing executables above')
 
     def __init__(self):
+        super(Context, self).__init__()
         self.include_dirs = []
 
         self._build_env_prepared = False
@@ -600,16 +605,23 @@ def build_recipes(build_order, python_modules, ctx, project_dir,
         ignore_setup_py=ignore_project_setup_py
     )
 
+    return
+
 
 def project_has_setup_py(project_dir):
-    return (project_dir is not None and
-            (exists(join(project_dir, "setup.py")) or
-             exists(join(project_dir, "pyproject.toml"))
-            ))
+    if project_dir is not None and \
+            (os.path.exists(os.path.join(project_dir,
+                            "setup.py")) or
+             os.path.exists(os.path.join(project_dir,
+                            "pyproject.toml"))
+            ):
+        return True
+    return False
 
 
 def run_setuppy_install(ctx, project_dir, env=None):
-    env = env or {}
+    if env is None:
+        env = dict()
 
     with current_directory(project_dir):
         info('got setup.py or similar, running project install. ' +
@@ -1064,4 +1076,5 @@ def copylibs_function(soname, objs_paths, extra_link_dirs=[], env=None):
                             '\n\t'.join(needed_libs))
 
     print('Copying libraries')
-    shprint(sh.cp, *sofiles, dest)
+    for lib in sofiles:
+        shprint(sh.cp, lib, dest)

@@ -4,8 +4,6 @@ import sh
 import unittest
 
 from unittest import mock
-from platform import system
-
 from pythonforandroid.bootstrap import (
     _cmp_bootstraps_by_priority, Bootstrap, expand_dependencies,
 )
@@ -76,7 +74,7 @@ class TestBootstrapBasic(BaseClassSetupBootstrap, unittest.TestCase):
         bs = Bootstrap().get_bootstrap("sdl2", self.ctx)
         self.assertEqual(bs.name, "sdl2")
         self.assertEqual(bs.jni_dir, "sdl2/jni")
-        self.assertEqual(bs.get_build_dir_name(), "sdl2")
+        self.assertEqual(bs.get_build_dir_name(), "sdl2-python3")
 
         # bs.dist_dir should raise an error if there is no distribution to query
         bs.distribution = None
@@ -100,7 +98,7 @@ class TestBootstrapBasic(BaseClassSetupBootstrap, unittest.TestCase):
         bs = Bootstrap.get_bootstrap("sdl2", self.ctx)
 
         self.assertTrue(
-            bs.get_build_dir().endswith("build/bootstrap_builds/sdl2")
+            bs.get_build_dir().endswith("build/bootstrap_builds/sdl2-python3")
         )
         self.assertTrue(bs.get_dist_dir("test_prj").endswith("dists/test_prj"))
         self.assertTrue(
@@ -143,7 +141,7 @@ class TestBootstrapBasic(BaseClassSetupBootstrap, unittest.TestCase):
 
     def test_all_bootstraps(self):
         """A test which will initialize a bootstrap and will check if the
-        method :meth:`~pythonforandroid.bootstrap.Bootstrap.all_bootstraps `
+        method :meth:`~pythonforandroid.bootstrap.Bootstrap.list_bootstraps`
         returns the expected values, which should be: `empty", `service_only`,
         `webview` and `sdl2`
         """
@@ -181,8 +179,8 @@ class TestBootstrapBasic(BaseClassSetupBootstrap, unittest.TestCase):
         expanded_result = expand_dependencies(
             ["python3", "kivy", "peewee"], self.ctx
         )
-        # we expect to one results for python3
-        self.assertEqual(len(expanded_result), 1)
+        # we expect to have two results (one for python2 and one for python3)
+        self.assertEqual(len(expanded_result), 2)
         self.assertIsInstance(expanded_result, list)
         for i in expanded_result:
             self.assertIsInstance(i, list)
@@ -243,6 +241,11 @@ class TestBootstrapBasic(BaseClassSetupBootstrap, unittest.TestCase):
             recipes_with_no_sdl2_or_web, self.ctx
         )
         self.assertEqual(bs.name, "service_only")
+
+        # Test wrong recipes
+        wrong_recipes = {"python2", "python3", "pyjnius"}
+        bs = Bootstrap.get_bootstrap_from_recipes(wrong_recipes, self.ctx)
+        self.assertIsNone(bs)
 
     @mock.patch("pythonforandroid.bootstrap.ensure_dir")
     def test_prepare_dist_dir(self, mock_ensure_dir):
@@ -366,6 +369,9 @@ class GenericBootstrapTest(BaseClassSetupBootstrap):
     @mock.patch("pythonforandroid.bootstraps.webview.open", create=True)
     @mock.patch("pythonforandroid.bootstraps.sdl2.open", create=True)
     @mock.patch("pythonforandroid.distribution.open", create=True)
+    @mock.patch(
+        "pythonforandroid.python.GuestPythonRecipe.create_python_bundle"
+    )
     @mock.patch("pythonforandroid.bootstrap.Bootstrap.strip_libraries")
     @mock.patch("pythonforandroid.util.exists")
     @mock.patch("pythonforandroid.util.chdir")
@@ -380,6 +386,7 @@ class GenericBootstrapTest(BaseClassSetupBootstrap):
         mock_chdir,
         mock_ensure_dir,
         mock_strip_libraries,
+        mock_create_python_bundle,
         mock_open_dist_files,
         mock_open_sdl2_files,
         mock_open_webview_files,
@@ -411,7 +418,6 @@ class GenericBootstrapTest(BaseClassSetupBootstrap):
 
         self.ctx.hostpython = "/some/fake/hostpython3"
         self.ctx.python_recipe = Recipe.get_recipe("python3", self.ctx)
-        self.ctx.python_recipe.create_python_bundle = mock.MagicMock()
         self.ctx.python_modules = ["requests"]
         self.ctx.archs = [ArchARMv7_a(self.ctx)]
 
@@ -454,16 +460,7 @@ class GenericBootstrapTest(BaseClassSetupBootstrap):
         mock_chdir.assert_called()
         mock_listdir.assert_called()
         mock_strip_libraries.assert_called()
-        expected__python_bundle = os.path.join(
-            self.ctx.dist_dir,
-            f"{self.ctx.bootstrap.distribution.name}__{self.TEST_ARCH}",
-            "_python_bundle",
-            "_python_bundle",
-        )
-        self.assertIn(
-            mock.call(expected__python_bundle, self.ctx.archs[0]),
-            self.ctx.python_recipe.create_python_bundle.call_args_list,
-        )
+        mock_create_python_bundle.assert_called()
 
     @mock.patch("pythonforandroid.bootstrap.shprint")
     @mock.patch("pythonforandroid.bootstrap.glob.glob")
@@ -493,11 +490,12 @@ class GenericBootstrapTest(BaseClassSetupBootstrap):
         libs_dir = os.path.join("libs", arch.arch)
         # we expect two calls to glob/copy command via shprint
         self.assertEqual(len(mock_glob.call_args_list), 2)
-        self.assertEqual(len(mock_shprint.call_args_list), 1)
-        self.assertEqual(
-            mock_shprint.call_args_list,
-            [mock.call(sh.cp, "-a", *mock_glob.return_value, libs_dir)]
-        )
+        self.assertEqual(len(mock_shprint.call_args_list), 2)
+        for i, lib in enumerate(mock_glob.return_value):
+            self.assertEqual(
+                mock_shprint.call_args_list[i],
+                mock.call(sh.cp, "-a", lib, libs_dir),
+            )
         mock_build_dir.assert_called()
         mock_bs_dir.assert_called_once_with(libs_dir)
         reset_mocks()
@@ -548,7 +546,7 @@ class GenericBootstrapTest(BaseClassSetupBootstrap):
     ):
         mock_find_executable.return_value = os.path.join(
             self.ctx._ndk_dir,
-            f"toolchains/llvm/prebuilt/{system().lower()}-x86_64/bin/clang",
+            "toolchains/llvm/prebuilt/linux-x86_64/bin/clang",
         )
         mock_glob.return_value = [
             os.path.join(self.ctx._ndk_dir, "toolchains", "llvm")

@@ -47,7 +47,7 @@ class OpenSSLRecipe(Recipe):
     version = '1.1'
     '''the major minor version used to link our recipes'''
 
-    url_version = '1.1.1'
+    url_version = '1.1.1f'
     '''the version used to download our libraries'''
 
     url = 'https://www.openssl.org/source/openssl-{url_version}.tar.gz'
@@ -93,7 +93,7 @@ class OpenSSLRecipe(Recipe):
         return self.link_dirs_flags(arch) + self.link_libs_flags()
 
     def get_recipe_env(self, arch=None):
-        env = super().get_recipe_env(arch)
+        env = super(OpenSSLRecipe, self).get_recipe_env(arch)
         env['OPENSSL_VERSION'] = self.version
         env['MAKE'] = 'make'  # This removes the '-j5', which isn't safe
         env['ANDROID_NDK'] = self.ctx.ndk_dir

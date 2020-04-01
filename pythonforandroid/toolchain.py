@@ -6,11 +6,12 @@ Tool for packaging Python apps for Android
 This module defines the entry point for command line and programmatic use.
 """
 
+from __future__ import print_function
 from os import environ
 from pythonforandroid import __version__
 from pythonforandroid.pythonpackage import get_dep_names_of_package
 from pythonforandroid.recommendations import (
-    RECOMMENDED_NDK_API, RECOMMENDED_TARGET_API, print_recommendations)
+    RECOMMENDED_NDK_API, RECOMMENDED_TARGET_API)
 from pythonforandroid.util import BuildInterruptingException
 from pythonforandroid.entrypoints import main
 
@@ -234,7 +235,7 @@ class NoAbbrevParser(argparse.ArgumentParser):
         return []
 
 
-class ToolchainCL:
+class ToolchainCL(object):
 
     def __init__(self):
 
@@ -748,7 +749,7 @@ class ToolchainCL:
         .. code-block:: bash
             python3      3.7.1
                 depends: ['hostpython3', 'sqlite3', 'openssl', 'libffi']
-                conflicts: []
+                conflicts: ['python2']
                 optional depends: ['sqlite3', 'libffi', 'openssl']
         """
         ctx = self.ctx
@@ -784,7 +785,7 @@ class ToolchainCL:
 
     def bootstraps(self, _args):
         """List all the bootstraps available to build with."""
-        for bs in Bootstrap.all_bootstraps():
+        for bs in Bootstrap.list_bootstraps():
             bs = Bootstrap.get_bootstrap(bs, self.ctx)
             print('{Fore.BLUE}{Style.BRIGHT}{bs.name}{Style.RESET_ALL}'
                   .format(bs=bs, Fore=Out_Fore, Style=Out_Style))
@@ -827,7 +828,7 @@ class ToolchainCL:
         """Delete all the bootstrap builds."""
         if exists(join(self.ctx.build_dir, 'bootstrap_builds')):
             shutil.rmtree(join(self.ctx.build_dir, 'bootstrap_builds'))
-        # for bs in Bootstrap.all_bootstraps():
+        # for bs in Bootstrap.list_bootstraps():
         #     bs = Bootstrap.get_bootstrap(bs, self.ctx)
         #     if bs.build_dir and exists(bs.build_dir):
         #         info('Cleaning build for {} bootstrap.'.format(bs.name))
@@ -1161,9 +1162,6 @@ class ToolchainCL:
         for line in output:
             sys.stdout.write(line)
             sys.stdout.flush()
-
-    def recommendations(self, args):
-        print_recommendations()
 
     def build_status(self, _args):
         """Print the status of the specified build. """

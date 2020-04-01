@@ -15,7 +15,7 @@ class BillingService(object):
     BILLING_TYPE_SUBSCRIPTION = 'subs'
 
     def __init__(self, callback):
-        super().__init__()
+        super(BillingService, self).__init__()
         self.callback = callback
         self.purchased_items = None
         android_billing_service_start()

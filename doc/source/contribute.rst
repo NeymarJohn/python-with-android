@@ -75,6 +75,9 @@ Release checklist
   - `python3 setup_testapp_python3_sqlite_openssl.py apk`
     - [ ] `armeabi-v7a`
     - [ ] `arm64-v8a`
+  - `python3 setup_testapp_python2.py apk`
+    - [ ] `armeabi-v7a`
+    - [ ] `arm64-v8a`
 - [ ] Check that the version number is correct
 
 
