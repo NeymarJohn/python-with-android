@@ -34,7 +34,7 @@ install_reqs = [
 def recursively_include(results, directory, patterns):
     for root, subfolders, files in walk(directory):
         for fn in files:
-            if not any([glob.fnmatch.fnmatch(fn, pattern) for pattern in patterns]):
+            if not any(glob.fnmatch.fnmatch(fn, pattern) for pattern in patterns):
                 continue
             filename = join(root, fn)
             directory = 'pythonforandroid'
@@ -100,7 +100,6 @@ setup(name='python-for-android',
               ],
           'distutils.commands': [
               'apk = pythonforandroid.bdistapk:BdistAPK',
-              'aar = pythonforandroid.bdistapk:BdistAAR',
               ],
           },
       classifiers = [

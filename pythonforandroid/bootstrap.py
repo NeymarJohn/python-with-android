@@ -14,7 +14,7 @@ from pythonforandroid.util import (
 from pythonforandroid.recipe import Recipe
 
 
-def copy_files(src_root, dest_root, override=True, symlink=False):
+def copy_files(src_root, dest_root, override=True):
     for root, dirnames, filenames in walk(src_root):
         for filename in filenames:
             subdir = normpath(root.replace(src_root, ""))
@@ -29,10 +29,7 @@ def copy_files(src_root, dest_root, override=True, symlink=False):
                 if override and os.path.exists(dest_file):
                     os.unlink(dest_file)
                 if not os.path.exists(dest_file):
-                    if symlink:
-                        os.symlink(src_file, dest_file)
-                    else:
-                        shutil.copy(src_file, dest_file)
+                    shutil.copy(src_file, dest_file)
             else:
                 os.makedirs(dest_file)
 
@@ -112,7 +109,7 @@ class Bootstrap:
         and optional dependencies are being used,
         and returns a list of these.'''
         recipes = []
-        built_recipes = self.ctx.recipe_build_order or []
+        built_recipes = self.ctx.recipe_build_order
         for recipe in self.recipe_depends:
             if isinstance(recipe, (tuple, list)):
                 for alternative in recipe:
@@ -140,27 +137,21 @@ class Bootstrap:
         modname = self.__class__.__module__
         return modname.split(".", 2)[-1]
 
-    def get_bootstrap_dirs(self):
-        """get all bootstrap directories, following the MRO path"""
-
-        # get all bootstrap names along the __mro__, cutting off Bootstrap and object
-        classes = self.__class__.__mro__[:-2]
-        bootstrap_names = [cls.name for cls in classes] + ['common']
-        bootstrap_dirs = [
-            join(self.ctx.root_dir, 'bootstraps', bootstrap_name)
-            for bootstrap_name in reversed(bootstrap_names)
-        ]
-        return bootstrap_dirs
-
     def prepare_build_dir(self):
-        """Ensure that a build dir exists for the recipe. This same single
-        dir will be used for building all different archs."""
-        bootstrap_dirs = self.get_bootstrap_dirs()
-        # now do a cumulative copy of all bootstrap dirs
+        '''Ensure that a build dir exists for the recipe. This same single
+        dir will be used for building all different archs.'''
         self.build_dir = self.get_build_dir()
-        for bootstrap_dir in bootstrap_dirs:
-            copy_files(join(bootstrap_dir, 'build'), self.build_dir, symlink=self.ctx.symlink_bootstrap_files)
-
+        self.common_dir = self.get_common_dir()
+        copy_files(join(self.bootstrap_dir, 'build'), self.build_dir)
+        copy_files(join(self.common_dir, 'build'), self.build_dir,
+                   override=False)
+        if self.ctx.symlink_java_src:
+            info('Symlinking java src instead of copying')
+            shprint(sh.rm, '-r', join(self.build_dir, 'src'))
+            shprint(sh.mkdir, join(self.build_dir, 'src'))
+            for dirn in listdir(join(self.bootstrap_dir, 'build', 'src')):
+                shprint(sh.ln, '-s', join(self.bootstrap_dir, 'build', 'src', dirn),
+                        join(self.build_dir, 'src'))
         with current_directory(self.build_dir):
             with open('project.properties', 'w') as fileh:
                 fileh.write('target=android-{}'.format(self.ctx.android_api))
@@ -204,7 +195,7 @@ class Bootstrap:
                 # Check if the bootstap's dependencies have an internal conflict:
                 for recipe in possible_dependencies:
                     recipe = Recipe.get_recipe(recipe, ctx)
-                    if any([conflict in recipes for conflict in recipe.conflicts]):
+                    if any(conflict in recipes for conflict in recipe.conflicts):
                         ok = False
                         break
                 # Check if bootstrap's dependencies conflict with chosen
@@ -216,8 +207,8 @@ class Bootstrap:
                         conflicts = []
                     else:
                         conflicts = recipe.conflicts
-                    if any([conflict in possible_dependencies
-                            for conflict in conflicts]):
+                    if any(conflict in possible_dependencies
+                            for conflict in conflicts):
                         ok = False
                         break
                 if ok and bs not in acceptable_bootstraps:
