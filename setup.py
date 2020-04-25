@@ -23,9 +23,9 @@ data_files = []
 install_reqs = [
     'appdirs', 'colorama>=0.3.3', 'jinja2', 'six',
     'enum34; python_version<"3.4"', 'sh>=1.10; sys_platform!="nt"',
-    'pep517<0.7.0"', 'pytoml', 'virtualenv<20'
+    'pep517<0.7.0"', 'toml',
 ]
-# (pep517, pytoml and virtualenv are used by pythonpackage.py)
+# (pep517 and toml are used by pythonpackage.py)
 
 # By specifying every file manually, package_data will be able to
 # include them in binary distributions. Note that we have to add
@@ -88,6 +88,7 @@ setup(name='python-for-android',
       description='Android APK packager for Python scripts and apps',
       long_description=long_description,
       long_description_content_type='text/markdown',
+      python_requires=">=3.6.0",
       author='The Kivy team',
       author_email='kivy-dev@googlegroups.com',
       url='https://github.com/kivy/python-for-android',
@@ -114,6 +115,9 @@ setup(name='python-for-android',
           'Operating System :: Android',
           'Programming Language :: C',
           'Programming Language :: Python :: 3',
+          'Programming Language :: Python :: 3.6',
+          'Programming Language :: Python :: 3.7',
+          'Programming Language :: Python :: 3.8',
           'Topic :: Software Development',
           'Topic :: Utilities',
           ],
