@@ -71,7 +71,7 @@ class TestToolchainCL:
             'pythonforandroid.toolchain.build_recipes'
         ) as m_build_recipes, mock.patch(
             'pythonforandroid.bootstraps.service_only.'
-            'ServiceOnlyBootstrap.assemble_distribution'
+            'ServiceOnlyBootstrap.run_distribute'
         ) as m_run_distribute:
             m_get_available_apis.return_value = [27]
             m_get_toolchain_versions.return_value = (['4.9'], True)

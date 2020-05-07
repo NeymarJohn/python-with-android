@@ -11,7 +11,7 @@ class WebViewBootstrap(Bootstrap):
         set(Bootstrap.recipe_depends).union({'genericndkbuild'})
     )
 
-    def assemble_distribution(self):
+    def run_distribute(self):
         info_main('# Creating Android project from build and {} bootstrap'.format(
             self.name))
 
@@ -46,7 +46,7 @@ class WebViewBootstrap(Bootstrap):
         if not self.ctx.build_as_debuggable:
             self.strip_libraries(arch)
         self.fry_eggs(site_packages_dir)
-        super().assemble_distribution()
+        super().run_distribute()
 
 
 bootstrap = WebViewBootstrap()
