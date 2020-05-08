@@ -209,7 +209,7 @@ def build_dist_from_args(ctx, dist, args):
                   ),
                  )
 
-    ctx.bootstrap.run_distribute()
+    ctx.bootstrap.assemble_distribution()
 
     info_main('# Your distribution was created successfully, exiting.')
     info('Dist can be found at (for now) {}'
@@ -491,6 +491,10 @@ class ToolchainCL:
         # However, it is also needed before the distribution is finally
         # assembled for locating the setup.py / other build systems, which
         # is why we also add it here:
+        parser_packaging.add_argument(
+            '--add-asset', dest='assets',
+            action="append", default=[],
+            help='Put this in the assets folder in the apk.')
         parser_packaging.add_argument(
             '--private', dest='private',
             help='the directory with the app source code files' +
@@ -949,6 +953,14 @@ class ToolchainCL:
         fix_args = ('--dir', '--private', '--add-jar', '--add-source',
                     '--whitelist', '--blacklist', '--presplash', '--icon')
         unknown_args = args.unknown_args
+
+        for asset in args.assets:
+            if ":" in asset:
+                asset_src, asset_dest = asset.split(":")
+            else:
+                asset_src = asset_dest = asset
+            # take abspath now, because build.py will be run in bootstrap dir
+            unknown_args += ["--asset", os.path.abspath(asset_src)+":"+asset_dest]
         for i, arg in enumerate(unknown_args):
             argx = arg.split('=')
             if argx[0] in fix_args:
@@ -1039,7 +1051,7 @@ class ToolchainCL:
                     "Unknown build mode {} for apk()".format(args.build_mode))
             output = shprint(gradlew, gradle_task, _tail=20,
                              _critical=True, _env=env)
-            return output, build_args
+        return output, build_args
 
     def _finish_package(self, args, output, build_args, package_type, output_dir):
         """
