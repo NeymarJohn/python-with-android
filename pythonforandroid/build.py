@@ -11,7 +11,6 @@ import re
 import sh
 import shutil
 import subprocess
-from contextlib import suppress
 
 from pythonforandroid.util import (
     current_directory, ensure_dir,
@@ -622,8 +621,10 @@ def run_setuppy_install(ctx, project_dir, env=None):
             ),
             "freeze"
         ], env=copy.copy(env))
-        with suppress(AttributeError):
+        try:
             constraints = constraints.decode("utf-8", "replace")
+        except AttributeError:
+            pass
         info(constraints)
 
         # Make sure all packages found are fixed in version
