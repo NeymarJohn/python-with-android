@@ -12,8 +12,7 @@ and, of course, we should have the proper test for the given recipe at
 app requirements via the dictionary `options`. Here you have some examples
 to build the supported app modes::
 
-  - kivy *basic*: `sqlite3,libffi,openssl,pyjnius,kivy,python3,requests,
-    urllib3,chardet,idna`
+  - kivy *basic*: `sqlite3,libffi,openssl,pyjnius,kivy,python3,requests`
   - kivy *images/graphs*: `kivy,python3,numpy,matplotlib,Pillow`
   - kivy *encryption*: `kivy,python3,cryptography,pycryptodome,scrypt,
     m2crypto,pysha3`
@@ -40,8 +39,7 @@ options = {
     'apk':
         {
             'requirements':
-                'sqlite3,libffi,openssl,pyjnius,kivy,python3,requests,urllib3,'
-                'chardet,idna',
+                'sqlite3,libffi,openssl,pyjnius,kivy,python3,requests',
             'android-api': 27,
             'ndk-api': 21,
             'dist-name': 'bdist_unit_tests_app',
