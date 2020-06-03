@@ -20,7 +20,7 @@ all: virtualenv
 
 $(VIRTUAL_ENV):
 	python3 -m venv $(VIRTUAL_ENV)
-	$(PIP) install Cython==0.29.19
+	$(PIP) install Cython
 	$(PIP) install -e .
 
 virtualenv: $(VIRTUAL_ENV)
@@ -38,7 +38,7 @@ testapps-with-numpy/%: virtualenv
 	$(eval $@_APP_ARCH := $(shell basename $*))
 	. $(ACTIVATE) && cd testapps/on_device_unit_tests/ && \
     python setup.py apk --sdk-dir $(ANDROID_SDK_HOME) --ndk-dir $(ANDROID_NDK_HOME) \
-    --requirements libffi,sdl2,pyjnius,kivy,python3,openssl,requests,sqlite3,setuptools,numpy \
+    --requirements libffi,sdl2,pyjnius,kivy,python3,openssl,requests,urllib3,chardet,idna,sqlite3,setuptools,numpy \
     --arch=$($@_APP_ARCH)
 
 testapps/%: virtualenv
