@@ -11,7 +11,7 @@ from pythonforandroid import __version__
 from pythonforandroid.pythonpackage import get_dep_names_of_package
 from pythonforandroid.recommendations import (
     RECOMMENDED_NDK_API, RECOMMENDED_TARGET_API, print_recommendations)
-from pythonforandroid.util import BuildInterruptingException, load_source
+from pythonforandroid.util import BuildInterruptingException
 from pythonforandroid.entrypoints import main
 
 
@@ -81,6 +81,7 @@ from functools import wraps
 
 import argparse
 import sh
+import imp
 from appdirs import user_data_dir
 import logging
 from distutils.version import LooseVersion
@@ -374,6 +375,11 @@ class ToolchainCL:
             '--local-recipes', '--local_recipes',
             dest='local_recipes', default='./p4a-recipes',
             help='Directory to look for local recipes')
+
+        generic_parser.add_argument(
+            '--activity-class-name',
+            dest='activity_class_name', default='org.kivy.android.PythonActivity',
+            help='The full java class name of the main activity')
 
         generic_parser.add_argument(
             '--java-build-tool',
@@ -703,6 +709,8 @@ class ToolchainCL:
         self.ctx.local_recipes = args.local_recipes
         self.ctx.copy_libs = args.copy_libs
 
+        self.ctx.activity_class_name = args.activity_class_name
+
         # Each subparser corresponds to a method
         command = args.subparser_name.replace('-', '_')
         getattr(self, command)(args)
@@ -751,8 +759,8 @@ class ToolchainCL:
             return
         if not hasattr(self, "hook_module"):
             # first time, try to load the hook module
-            self.hook_module = load_source(
-                "pythonforandroid.hook", self.args.hook)
+            self.hook_module = imp.load_source("pythonforandroid.hook",
+                                               self.args.hook)
         if hasattr(self.hook_module, name):
             info("Hook: execute {}".format(name))
             getattr(self.hook_module, name)(self)
@@ -1024,7 +1032,7 @@ class ToolchainCL:
         with current_directory(dist.dist_dir):
             self.hook("before_apk_build")
             os.environ["ANDROID_API"] = str(self.ctx.android_api)
-            build = load_source('build', join(dist.dist_dir, 'build.py'))
+            build = imp.load_source('build', join(dist.dist_dir, 'build.py'))
             build_args = build.parse_args_and_make_package(
                 args.unknown_args
             )

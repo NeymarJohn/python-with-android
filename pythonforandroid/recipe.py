@@ -9,7 +9,6 @@ from re import match
 import sh
 import shutil
 import fnmatch
-from urllib.request import urlretrieve
 from os import listdir, unlink, environ, mkdir, curdir, walk
 from sys import stdout
 import time
@@ -18,9 +17,22 @@ try:
 except ImportError:
     from urllib.parse import urlparse
 from pythonforandroid.logger import (logger, info, warning, debug, shprint, info_main)
-from pythonforandroid.util import (current_directory, ensure_dir,
+from pythonforandroid.util import (urlretrieve, current_directory, ensure_dir,
                                    BuildInterruptingException)
-from pythonforandroid.util import load_source as import_recipe
+
+
+def import_recipe(module, filename):
+    # Python 3.5+
+    import importlib.util
+    if hasattr(importlib.util, 'module_from_spec'):
+        spec = importlib.util.spec_from_file_location(module, filename)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+    else:
+        # Python 3.3 and 3.4:
+        from importlib.machinery import SourceFileLoader
+        return SourceFileLoader(module, filename).load_module()
 
 
 class RecipeMeta(type):
