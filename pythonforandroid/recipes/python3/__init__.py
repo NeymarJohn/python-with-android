@@ -94,8 +94,7 @@ class Python3Recipe(TargetPythonRecipe):
         '--without-ensurepip',
         'ac_cv_little_endian_double=yes',
         '--prefix={prefix}',
-        '--exec-prefix={exec_prefix}',
-        '--enable-loadable-sqlite-extensions')
+        '--exec-prefix={exec_prefix}')
     '''The configure arguments needed to build the python recipe. Those are
     used in method :meth:`build_arch` (if not overwritten like python3's
     recipe does).
