@@ -56,7 +56,7 @@ class Python3Recipe(TargetPythonRecipe):
         :class:`~pythonforandroid.python.GuestPythonRecipe`
     '''
 
-    version = '3.8.1'
+    version = '3.8.5'
     url = 'https://www.python.org/ftp/python/{version}/Python-{version}.tgz'
     name = 'python3'
 
@@ -94,7 +94,8 @@ class Python3Recipe(TargetPythonRecipe):
         '--without-ensurepip',
         'ac_cv_little_endian_double=yes',
         '--prefix={prefix}',
-        '--exec-prefix={exec_prefix}')
+        '--exec-prefix={exec_prefix}',
+        '--enable-loadable-sqlite-extensions')
     '''The configure arguments needed to build the python recipe. Those are
     used in method :meth:`build_arch` (if not overwritten like python3's
     recipe does).
