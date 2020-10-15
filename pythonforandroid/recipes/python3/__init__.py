@@ -155,22 +155,10 @@ class Python3Recipe(TargetPythonRecipe):
     @property
     def _libpython(self):
         '''return the python's library name (with extension)'''
-        return 'libpython{link_version}.so'.format(
-            link_version=self.link_version
-        )
-
-    @property
-    def link_version(self):
-        '''return the python's library link version e.g. 3.7m, 3.8'''
-        major, minor = self.major_minor_version_string.split('.')
-        flags = ''
-        if major == '3' and int(minor) < 8:
-            flags += 'm'
-        return '{major}.{minor}{flags}'.format(
-            major=major,
-            minor=minor,
-            flags=flags
-        )
+        py_version = self.major_minor_version_string
+        if self.major_minor_version_string[0] == '3':
+            py_version += 'm'
+        return 'libpython{version}.so'.format(version=py_version)
 
     def include_root(self, arch_name):
         return join(self.get_build_dir(arch_name), 'Include')
@@ -405,7 +393,9 @@ class Python3Recipe(TargetPythonRecipe):
         # copy the python .so files into place
         python_build_dir = join(self.get_build_dir(arch.arch),
                                 'android-build')
-        python_lib_name = 'libpython' + self.link_version
+        python_lib_name = 'libpython' + self.major_minor_version_string
+        if self.major_minor_version_string[0] == '3':
+            python_lib_name += 'm'
         shprint(
             sh.cp,
             join(python_build_dir, python_lib_name + '.so'),
