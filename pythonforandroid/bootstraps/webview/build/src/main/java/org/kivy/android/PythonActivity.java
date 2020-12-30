@@ -34,7 +34,6 @@ import android.view.ViewGroup.LayoutParams;
 
 import android.webkit.WebViewClient;
 import android.webkit.WebView;
-import android.net.Uri;
 
 import org.renpy.android.ResourceManager;
 
@@ -46,7 +45,6 @@ public class PythonActivity extends Activity {
     private static final String TAG = "PythonActivity";
 
     public static PythonActivity mActivity = null;
-    public static boolean mOpenExternalLinksInBrowser = false;
 
     /** If shared libraries (e.g. SDL or the native application) could not be loaded. */
     public static boolean mBrokenLibraries;
@@ -165,13 +163,6 @@ public class PythonActivity extends Activity {
             mWebView.setWebViewClient(new WebViewClient() {
                     @Override
                     public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                        if (mOpenExternalLinksInBrowser) {
-                            if (!(url.startsWith("file:") || url.startsWith("http://127.0.0.1:"))) {
-                                Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                                startActivity(i);
-                                return true;
-                            }
-                        }
                         view.loadUrl(url);
                         return false;
                     }
@@ -247,6 +238,16 @@ public class PythonActivity extends Activity {
 
         Log.i(TAG, "Opening URL: " + url);
         mActivity.runOnUiThread(new LoadUrl(url));
+    }
+
+    public static void enableZoom() {
+        mActivity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mWebView.getSettings().setBuiltInZoomControls(true);
+                mWebView.getSettings().setDisplayZoomControls(false);
+            }
+        });
     }
 
     public static ViewGroup getLayout() {
