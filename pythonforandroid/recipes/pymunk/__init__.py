@@ -10,8 +10,7 @@ class PymunkRecipe(CompiledComponentsPythonRecipe):
 
     def get_recipe_env(self, arch):
         env = super().get_recipe_env(arch)
-        env["LDFLAGS"] += " -llog"  # Used by Chipmunk cpMessage
-        env["LDFLAGS"] += " -lm"  # For older versions of Android
+        env["LDFLAGS"] += " -llog"
         return env
 
 
