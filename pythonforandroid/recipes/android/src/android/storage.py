@@ -1,7 +1,7 @@
 from jnius import autoclass, cast
 import os
 
-from android.config import ACTIVITY_CLASS_NAME, SERVICE_CLASS_NAME
+from android.config import JAVA_NAMESPACE, ACTIVITY_CLASS_NAME
 
 
 Environment = autoclass('android.os.Environment')
@@ -34,7 +34,7 @@ def _get_activity():
     activity = PythonActivity.mActivity
     if activity is None:
         # assume we're running from the background service
-        PythonService = autoclass(SERVICE_CLASS_NAME)
+        PythonService = autoclass(JAVA_NAMESPACE + '.' + 'PythonService')
         activity = PythonService.mService
     return activity
 
