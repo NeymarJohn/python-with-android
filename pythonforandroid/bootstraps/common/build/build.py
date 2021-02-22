@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 
-from gzip import GzipFile
-import hashlib
 import json
 from os.path import (
     dirname, join, isfile, realpath,
     relpath, split, exists, basename
 )
-from os import environ, listdir, makedirs, remove
+from os import listdir, makedirs, remove
 import os
 import shlex
 import shutil
@@ -89,10 +87,6 @@ environment = jinja2.Environment(loader=jinja2.FileSystemLoader(
     join(curdir, 'templates')))
 
 
-DEFAULT_PYTHON_ACTIVITY_JAVA_CLASS = 'org.kivy.android.PythonActivity'
-DEFAULT_PYTHON_SERVICE_JAVA_CLASS = 'org.kivy.android.PythonService'
-
-
 def ensure_dir(path):
     if not exists(path):
         makedirs(path)
@@ -167,13 +161,6 @@ def make_tar(tfn, source_dirs, ignore_path=[], optimize_python=True):
             return False
         return not is_blacklist(fn)
 
-    def clean(tinfo):
-        """cleaning function (for reproducible builds)"""
-        tinfo.uid = tinfo.gid = 0
-        tinfo.uname = tinfo.gname = ''
-        tinfo.mtime = 0
-        return tinfo
-
     # get the files and relpath file of all the directory we asked for
     files = []
     for sd in source_dirs:
@@ -181,11 +168,9 @@ def make_tar(tfn, source_dirs, ignore_path=[], optimize_python=True):
         compile_dir(sd, optimize_python=optimize_python)
         files += [(x, relpath(realpath(x), sd)) for x in listfiles(sd)
                   if select(x)]
-    files.sort()  # deterministic
 
     # create tar.gz of thoses files
-    gf = GzipFile(tfn, 'wb', mtime=0)  # deterministic
-    tf = tarfile.open(None, 'w', gf, format=tarfile.USTAR_FORMAT)
+    tf = tarfile.open(tfn, 'w:gz', format=tarfile.USTAR_FORMAT)
     dirs = []
     for fn, afn in files:
         dn = dirname(afn)
@@ -204,9 +189,8 @@ def make_tar(tfn, source_dirs, ignore_path=[], optimize_python=True):
                 tf.addfile(tinfo)
 
         # put the file
-        tf.add(fn, afn, filter=clean)
+        tf.add(fn, afn)
     tf.close()
-    gf.close()
 
 
 def compile_dir(dfn, optimize_python=True):
@@ -343,6 +327,9 @@ main.py that loads it.''')
         join(res_dir, 'drawable/icon.png')
     )
 
+    if args.enable_androidx:
+        shutil.copy('templates/gradle.properties', 'gradle.properties')
+
     if get_bootstrap_name() != "service_only":
         lottie_splashscreen = join(res_dir, 'raw/splashscreen.json')
         if args.presplash_lottie:
@@ -434,7 +421,6 @@ main.py that loads it.''')
             service = True
 
     service_names = []
-    base_service_class = args.service_class_name.split('.')[-1]
     for sid, spec in enumerate(args.services):
         spec = spec.split(':')
         name = spec[0]
@@ -459,7 +445,6 @@ main.py that loads it.''')
             foreground=foreground,
             sticky=sticky,
             service_id=sid + 1,
-            base_service_class=base_service_class,
         )
 
     # Find the SDK directory and target API
@@ -539,18 +524,9 @@ main.py that loads it.''')
         versioned_name=versioned_name)
 
     # String resources:
-    timestamp = time.time()
-    if 'SOURCE_DATE_EPOCH' in environ:
-        # for reproducible builds
-        timestamp = int(environ['SOURCE_DATE_EPOCH'])
-    private_version = "{} {} {}".format(
-        args.version,
-        args.numeric_version,
-        timestamp
-    )
     render_args = {
         "args": args,
-        "private_version": hashlib.sha1(private_version.encode()).hexdigest()
+        "private_version": str(time.time())
     }
     if get_bootstrap_name() == "sdl2":
         render_args["url_scheme"] = url_scheme
@@ -706,8 +682,12 @@ tools directory of the Android SDK.
                               'topics/manifest/'
                               'activity-element.html'))
 
+    ap.add_argument('--enable-androidx', dest='enable_androidx',
+                    action='store_true',
+                    help=('Enable the AndroidX support library, '
+                          'requires api = 28 or greater'))
     ap.add_argument('--android-entrypoint', dest='android_entrypoint',
-                    default=DEFAULT_PYTHON_ACTIVITY_JAVA_CLASS,
+                    default='org.kivy.android.PythonActivity',
                     help='Defines which java class will be used for startup, usually a subclass of PythonActivity')
     ap.add_argument('--android-apptheme', dest='android_apptheme',
                     default='@android:style/Theme.NoTitleBar',
@@ -806,16 +786,9 @@ tools directory of the Android SDK.
     ap.add_argument('--extra-manifest-xml', default='',
                     help=('Extra xml to write directly inside the <manifest> element of'
                           'AndroidManifest.xml'))
-    ap.add_argument('--extra-manifest-application-arguments', default='',
-                    help='Extra arguments to be added to the <manifest><application> tag of'
-                         'AndroidManifest.xml')
     ap.add_argument('--manifest-placeholders', dest='manifest_placeholders',
                     default='[:]', help=('Inject build variables into the manifest '
                                          'via the manifestPlaceholders property'))
-    ap.add_argument('--service-class-name', dest='service_class_name', default=DEFAULT_PYTHON_SERVICE_JAVA_CLASS,
-                    help='Use that parameter if you need to implement your own PythonServive Java class')
-    ap.add_argument('--activity-class-name', dest='activity_class_name', default=DEFAULT_PYTHON_ACTIVITY_JAVA_CLASS,
-                    help='The full java class name of the main activity')
 
     # Put together arguments, and add those from .p4a config file:
     if args is None:
@@ -835,7 +808,6 @@ tools directory of the Android SDK.
     _read_configuration()
 
     args = ap.parse_args(args)
-
     args.ignore_path = []
 
     if args.name and args.name[0] == '"' and args.name[-1] == '"':
