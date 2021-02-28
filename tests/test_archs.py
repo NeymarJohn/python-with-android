@@ -2,12 +2,13 @@ import os
 import unittest
 from os import environ
 from unittest import mock
+from platform import system
 
 from pythonforandroid.bootstrap import Bootstrap
 from pythonforandroid.distribution import Distribution
 from pythonforandroid.recipe import Recipe
 from pythonforandroid.build import Context
-from pythonforandroid.util import BuildInterruptingException, build_platform
+from pythonforandroid.util import BuildInterruptingException
 from pythonforandroid.archs import (
     Arch,
     ArchARM,
@@ -71,7 +72,7 @@ class ArchSetUpBaseClass(object):
         # should be the same for all the tests (no more gcc compiler)
         self.expected_compiler = (
             f"/opt/android/android-ndk/toolchains/"
-            f"llvm/prebuilt/{build_platform}/bin/clang"
+            f"llvm/prebuilt/{system().lower()}-x86_64/bin/clang"
         )
 
 

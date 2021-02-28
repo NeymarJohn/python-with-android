@@ -43,7 +43,9 @@ class CffiRecipe(CompiledComponentsPythonRecipe):
             env['BUILDLIB_PATH'],
         ])
         env['LDFLAGS'] += ' -L{}'.format(self.ctx.python_recipe.link_root(arch.arch))
-        env['LDFLAGS'] += ' -lpython{}'.format(self.ctx.python_recipe.link_version)
+        env['LDFLAGS'] += ' -lpython{}'.format(self.ctx.python_recipe.major_minor_version_string)
+        if 'python3' in self.ctx.python_recipe.name:
+            env['LDFLAGS'] += 'm'
         return env
 
 

@@ -5,6 +5,7 @@ from pathlib import Path
 from os.path import join
 
 from pythonforandroid.logger import shprint
+from pythonforandroid.patching import is_version_lt
 from pythonforandroid.recipe import Recipe
 from pythonforandroid.util import (
     BuildInterruptingException,
@@ -33,7 +34,7 @@ class HostPython3Recipe(Recipe):
         :class:`~pythonforandroid.python.HostPythonRecipe`
     '''
 
-    version = '3.8.5'
+    version = '3.8.1'
     name = 'hostpython3'
 
     build_subdir = 'native-build'
@@ -44,7 +45,9 @@ class HostPython3Recipe(Recipe):
     '''The default url to download our host python recipe. This url will
     change depending on the python version set in attribute :attr:`version`.'''
 
-    patches = ['patches/pyconfig_detection.patch']
+    patches = (
+        ('patches/pyconfig_detection.patch', is_version_lt("3.8.3")),
+    )
 
     @property
     def _exe_name(self):

@@ -58,11 +58,8 @@
                  {% if debug %}android:debuggable="true"{% endif %}
                  android:icon="@drawable/icon"
                  android:allowBackup="{{ args.allow_backup }}"
-                 {% if args.backup_rules %}android:fullBackupContent="@xml/{{ args.backup_rules }}"{% endif %}
-                 {{ args.extra_manifest_application_arguments }}
                  android:theme="{{args.android_apptheme}}{% if not args.window %}.Fullscreen{% endif %}"
-                 android:hardwareAccelerated="true"
-                 >
+                 android:hardwareAccelerated="true" >
         {% for l in args.android_used_libs %}
         <uses-library android:name="{{ l }}" />
         {% endfor %}
@@ -112,7 +109,7 @@
         {% endif %}
 
         {% if service or args.launcher %}
-        <service android:name="{{ args.service_class_name }}"
+        <service android:name="org.kivy.android.PythonService"
                  android:process=":pythonservice" />
         {% endif %}
         {% for name in service_names %}

@@ -9,7 +9,6 @@ from re import match
 import sh
 import shutil
 import fnmatch
-from urllib.request import urlretrieve
 from os import listdir, unlink, environ, mkdir, curdir, walk
 from sys import stdout
 import time
@@ -18,9 +17,22 @@ try:
 except ImportError:
     from urllib.parse import urlparse
 from pythonforandroid.logger import (logger, info, warning, debug, shprint, info_main)
-from pythonforandroid.util import (current_directory, ensure_dir,
+from pythonforandroid.util import (urlretrieve, current_directory, ensure_dir,
                                    BuildInterruptingException)
-from pythonforandroid.util import load_source as import_recipe
+
+
+def import_recipe(module, filename):
+    # Python 3.5+
+    import importlib.util
+    if hasattr(importlib.util, 'module_from_spec'):
+        spec = importlib.util.spec_from_file_location(module, filename)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+    else:
+        # Python 3.3 and 3.4:
+        from importlib.machinery import SourceFileLoader
+        return SourceFileLoader(module, filename).load_module()
 
 
 class RecipeMeta(type):
@@ -55,18 +67,6 @@ class Recipe(with_metaclass(RecipeMeta)):
 
     md5sum = None
     '''The md5sum of the source from the :attr:`url`. Non-essential, but
-    you should try to include this, it is used to check that the download
-    finished correctly.
-    '''
-
-    sha512sum = None
-    '''The sha512sum of the source from the :attr:`url`. Non-essential, but
-    you should try to include this, it is used to check that the download
-    finished correctly.
-    '''
-
-    blake2bsum = None
-    '''The blake2bsum of the source from the :attr:`url`. Non-essential, but
     you should try to include this, it is used to check that the download
     finished correctly.
     '''
@@ -203,30 +203,26 @@ class Recipe(with_metaclass(RecipeMeta)):
 
             # Download item with multiple attempts (for bad connections):
             attempts = 0
-            seconds = 1
             while True:
                 try:
                     urlretrieve(url, target, report_hook)
-                except OSError as e:
+                except OSError:
                     attempts += 1
                     if attempts >= 5:
                         raise
-                    stdout.write('Download failed: {}; retrying in {} second(s)...'.format(e, seconds))
-                    time.sleep(seconds)
-                    seconds *= 2
+                    stdout.write('Download failed retrying in a second...')
+                    time.sleep(1)
                     continue
                 break
             return target
         elif parsed_url.scheme in ('git', 'git+file', 'git+ssh', 'git+http', 'git+https'):
             if isdir(target):
                 with current_directory(target):
-                    shprint(sh.git, 'fetch', '--tags', '--recurse-submodules')
+                    shprint(sh.git, 'fetch', '--tags')
                     if self.version:
                         shprint(sh.git, 'checkout', self.version)
-                    branch = sh.git('branch', '--show-current')
-                    if branch:
-                        shprint(sh.git, 'pull')
-                        shprint(sh.git, 'pull', '--recurse-submodules')
+                    shprint(sh.git, 'pull')
+                    shprint(sh.git, 'pull', '--recurse-submodules')
                     shprint(sh.git, 'submodule', 'update', '--recursive')
             else:
                 if url.startswith('git+'):
@@ -356,19 +352,16 @@ class Recipe(with_metaclass(RecipeMeta)):
             return
 
         url = self.versioned_url
-        expected_digests = {}
-        for alg in set(hashlib.algorithms_guaranteed) | set(('md5', 'sha512', 'blake2b')):
-            expected_digest = getattr(self, alg + 'sum') if hasattr(self, alg + 'sum') else None
-            ma = match(u'^(.+)#' + alg + u'=([0-9a-f]{32,})$', url)
-            if ma:                # fragmented URL?
-                if expected_digest:
-                    raise ValueError(
-                        ('Received {}sum from both the {} recipe '
-                         'and its url').format(alg, self.name))
-                url = ma.group(1)
-                expected_digest = ma.group(2)
-            if expected_digest:
-                expected_digests[alg] = expected_digest
+        ma = match(u'^(.+)#md5=([0-9a-f]{32})$', url)
+        if ma:                  # fragmented URL?
+            if self.md5sum:
+                raise ValueError(
+                    ('Received md5sum from both the {} recipe '
+                     'and its url').format(self.name))
+            url = ma.group(1)
+            expected_md5 = ma.group(2)
+        else:
+            expected_md5 = self.md5sum
 
         shprint(sh.mkdir, '-p', join(self.ctx.packages_path, self.name))
 
@@ -380,17 +373,16 @@ class Recipe(with_metaclass(RecipeMeta)):
             if exists(filename) and isfile(filename):
                 if not exists(marker_filename):
                     shprint(sh.rm, filename)
+                elif expected_md5:
+                    current_md5 = md5sum(filename)
+                    if current_md5 != expected_md5:
+                        debug('* Generated md5sum: {}'.format(current_md5))
+                        debug('* Expected md5sum: {}'.format(expected_md5))
+                        raise ValueError(
+                            ('Generated md5sum does not match expected md5sum '
+                             'for {} recipe').format(self.name))
+                    do_download = False
                 else:
-                    for alg, expected_digest in expected_digests.items():
-                        current_digest = algsum(alg, filename)
-                        if current_digest != expected_digest:
-                            debug('* Generated {}sum: {}'.format(alg,
-                                                                 current_digest))
-                            debug('* Expected {}sum: {}'.format(alg,
-                                                                expected_digest))
-                            raise ValueError(
-                                ('Generated {0}sum does not match expected {0}sum '
-                                 'for {1} recipe').format(alg, self.name))
                     do_download = False
 
             # If we got this far, we will download
@@ -401,17 +393,15 @@ class Recipe(with_metaclass(RecipeMeta)):
                 self.download_file(self.versioned_url, filename)
                 shprint(sh.touch, marker_filename)
 
-                if exists(filename) and isfile(filename):
-                    for alg, expected_digest in expected_digests.items():
-                        current_digest = algsum(alg, filename)
-                        if current_digest != expected_digest:
-                            debug('* Generated {}sum: {}'.format(alg,
-                                                                 current_digest))
-                            debug('* Expected {}sum: {}'.format(alg,
-                                                                expected_digest))
+                if exists(filename) and isfile(filename) and expected_md5:
+                    current_md5 = md5sum(filename)
+                    if expected_md5 is not None:
+                        if current_md5 != expected_md5:
+                            debug('* Generated md5sum: {}'.format(current_md5))
+                            debug('* Expected md5sum: {}'.format(expected_md5))
                             raise ValueError(
-                                ('Generated {0}sum does not match expected {0}sum '
-                                 'for {1} recipe').format(alg, self.name))
+                                ('Generated md5sum does not match expected md5sum '
+                                 'for {} recipe').format(self.name))
             else:
                 info('{} download already cached, skipping'.format(self.name))
 
@@ -439,7 +429,7 @@ class Recipe(with_metaclass(RecipeMeta)):
 
         filename = shprint(
             sh.basename, self.versioned_url).stdout[:-1].decode('utf-8')
-        ma = match(u'^(.+)#[a-z0-9_]{3,}=([0-9a-f]{32,})$', filename)
+        ma = match(u'^(.+)#md5=([0-9a-f]{32})$', filename)
         if ma:                  # fragmented URL?
             filename = ma.group(1)
 
@@ -777,7 +767,9 @@ class BootstrapNDKRecipe(Recipe):
         env['PYTHON_INCLUDE_ROOT'] = self.ctx.python_recipe.include_root(arch.arch)
         env['PYTHON_LINK_ROOT'] = self.ctx.python_recipe.link_root(arch.arch)
         env['EXTRA_LDLIBS'] = ' -lpython{}'.format(
-            self.ctx.python_recipe.link_version)
+            self.ctx.python_recipe.major_minor_version_string)
+        if 'python3' in self.ctx.python_recipe.name:
+            env['EXTRA_LDLIBS'] += 'm'
         return env
 
 
@@ -914,13 +906,16 @@ class PythonRecipe(Recipe):
         env['LANG'] = "en_GB.UTF-8"
 
         if not self.call_hostpython_via_targetpython:
+            python_name = self.ctx.python_recipe.name
             env['CFLAGS'] += ' -I{}'.format(
                 self.ctx.python_recipe.include_root(arch.arch)
             )
             env['LDFLAGS'] += ' -L{} -lpython{}'.format(
                 self.ctx.python_recipe.link_root(arch.arch),
-                self.ctx.python_recipe.link_version,
+                self.ctx.python_recipe.major_minor_version_string,
             )
+            if python_name == 'python3':
+                env['LDFLAGS'] += 'm'
 
             hppath = []
             hppath.append(join(dirname(self.hostpython_location), 'Lib'))
@@ -1107,8 +1102,7 @@ class CythonRecipe(PythonRecipe):
         python_command = sh.Command("python{}".format(
             self.ctx.python_recipe.major_minor_version_string.split(".")[0]
         ))
-        shprint(python_command, "-c"
-                "import sys; from Cython.Compiler.Main import setuptools_main; sys.exit(setuptools_main());",
+        shprint(python_command, "-m", "Cython.Build.Cythonize",
                 filename, *self.cython_args, _env=cyenv)
 
     def cythonize_build(self, env, build_dir="."):
@@ -1192,10 +1186,10 @@ class TargetPythonRecipe(Recipe):
             shprint(sh.mv, filen, join(file_dirname, parts[0] + '.so'))
 
 
-def algsum(alg, filen):
-    '''Calculate the digest of a file.
+def md5sum(filen):
+    '''Calculate the md5sum of a file.
     '''
     with open(filen, 'rb') as fileh:
-        digest = getattr(hashlib, alg)(fileh.read())
+        md5 = hashlib.md5(fileh.read())
 
-    return digest.hexdigest()
+    return md5.hexdigest()
