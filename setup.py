@@ -11,7 +11,8 @@ from setuptools import setup, find_packages
 packages = find_packages()
 
 package_data = {'': ['*.tmpl',
-                     '*.patch', ], }
+                     '*.patch',
+                     '*.diff', ], }
 
 data_files = []
 
@@ -21,7 +22,7 @@ data_files = []
 install_reqs = [
     'appdirs', 'colorama>=0.3.3', 'jinja2', 'six',
     'enum34; python_version<"3.4"', 'sh>=1.10; sys_platform!="nt"',
-    'pep517<0.7.0"', 'toml',
+    'pep517<0.7.0', 'toml',
 ]
 # (pep517 and toml are used by pythonpackage.py)
 

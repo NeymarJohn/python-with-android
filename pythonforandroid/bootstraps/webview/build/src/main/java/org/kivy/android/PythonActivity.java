@@ -5,13 +5,17 @@ import android.os.SystemClock;
 import java.io.InputStream;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
 
 import android.view.ViewGroup;
+import android.view.KeyEvent;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.util.Log;
 import android.widget.Toast;
@@ -30,6 +34,7 @@ import android.view.ViewGroup.LayoutParams;
 
 import android.webkit.WebViewClient;
 import android.webkit.WebView;
+import android.net.Uri;
 
 import org.renpy.android.ResourceManager;
 
@@ -41,6 +46,7 @@ public class PythonActivity extends Activity {
     private static final String TAG = "PythonActivity";
 
     public static PythonActivity mActivity = null;
+    public static boolean mOpenExternalLinksInBrowser = false;
 
     /** If shared libraries (e.g. SDL or the native application) could not be loaded. */
     public static boolean mBrokenLibraries;
@@ -66,7 +72,7 @@ public class PythonActivity extends Activity {
         List<String> entryPoints = new ArrayList<String>();
         entryPoints.add("main.pyo");  // python 2 compiled files
         entryPoints.add("main.pyc");  // python 3 compiled files
-		for (String value : entryPoints) {
+        for (String value : entryPoints) {
             File mainFile = new File(search_dir + "/" + value);
             if (mainFile.exists()) {
                 return value;
@@ -159,6 +165,13 @@ public class PythonActivity extends Activity {
             mWebView.setWebViewClient(new WebViewClient() {
                     @Override
                     public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                        if (mOpenExternalLinksInBrowser) {
+                            if (!(url.startsWith("file:") || url.startsWith("http://127.0.0.1:"))) {
+                                Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                                startActivity(i);
+                                return true;
+                            }
+                        }
                         view.loadUrl(url);
                         return false;
                     }
@@ -236,6 +249,16 @@ public class PythonActivity extends Activity {
         mActivity.runOnUiThread(new LoadUrl(url));
     }
 
+    public static void enableZoom() {
+        mActivity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mWebView.getSettings().setBuiltInZoomControls(true);
+                mWebView.getSettings().setDisplayZoomControls(false);
+            }
+        });
+    }
+
     public static ViewGroup getLayout() {
         return   mLayout;
     }
@@ -300,7 +323,7 @@ public class PythonActivity extends Activity {
         mImageView.setImageBitmap(bitmap);
 
         /*
-     * Set the presplash loading screen background color
+         * Set the presplash loading screen background color
          * https://developer.android.com/reference/android/graphics/Color.html
          * Parse the color string, and return the corresponding color-int.
          * If the string cannot be parsed, throws an IllegalArgumentException exception.
@@ -452,6 +475,73 @@ public class PythonActivity extends Activity {
     public static native void nativeSetenv(String name, String value);
     public static native int nativeInit(Object arguments);
 
+
+    /**
+     * Used by android.permissions p4a module to register a call back after
+     * requesting runtime permissions
+     **/
+    public interface PermissionsCallback {
+        void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults);
+    }
+
+    private PermissionsCallback permissionCallback;
+    private boolean havePermissionsCallback = false;
+
+    public void addPermissionsCallback(PermissionsCallback callback) {
+        permissionCallback = callback;
+        havePermissionsCallback = true;
+        Log.v(TAG, "addPermissionsCallback(): Added callback for onRequestPermissionsResult");
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        Log.v(TAG, "onRequestPermissionsResult()");
+        if (havePermissionsCallback) {
+            Log.v(TAG, "onRequestPermissionsResult passed to callback");
+            permissionCallback.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    /**
+     * Used by android.permissions p4a module to check a permission
+     **/
+    public boolean checkCurrentPermission(String permission) {
+        if (android.os.Build.VERSION.SDK_INT < 23)
+            return true;
+
+        try {
+            java.lang.reflect.Method methodCheckPermission =
+                Activity.class.getMethod("checkSelfPermission", String.class);
+            Object resultObj = methodCheckPermission.invoke(this, permission);
+            int result = Integer.parseInt(resultObj.toString());
+            if (result == PackageManager.PERMISSION_GRANTED)
+                return true;
+        } catch (IllegalAccessException | NoSuchMethodException |
+                 InvocationTargetException e) {
+        }
+        return false;
+    }
+
+    /**
+     * Used by android.permissions p4a module to request runtime permissions
+     **/
+    public void requestPermissionsWithRequestCode(String[] permissions, int requestCode) {
+        if (android.os.Build.VERSION.SDK_INT < 23)
+            return;
+        try {
+            java.lang.reflect.Method methodRequestPermission =
+                Activity.class.getMethod("requestPermissions",
+                String[].class, int.class);
+            methodRequestPermission.invoke(this, permissions, requestCode);
+        } catch (IllegalAccessException | NoSuchMethodException |
+                 InvocationTargetException e) {
+        }
+    }
+
+    public void requestPermissions(String[] permissions) {
+        requestPermissionsWithRequestCode(permissions, 1);
+    }
 }
 
 
