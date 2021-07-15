@@ -1,5 +1,4 @@
 
-import sys
 import os
 
 
@@ -45,10 +44,7 @@ def does_libname_match_filename(search_name, file_path):
 
 def find_library(name):
     # Obtain all places for native libraries:
-    if sys.maxsize > 2**32:  # 64bit-build
-        lib_search_dirs = ["/system/lib64", "/system/lib"]
-    else:
-        lib_search_dirs = ["/system/lib"]
+    lib_search_dirs = ["/system/lib"]
     lib_dir_1 = get_activity_lib_dir("org.kivy.android.PythonActivity")
     if lib_dir_1 is not None:
         lib_search_dirs.insert(0, lib_dir_1)
