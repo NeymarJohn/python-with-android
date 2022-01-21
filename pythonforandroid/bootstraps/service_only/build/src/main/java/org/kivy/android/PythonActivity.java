@@ -74,8 +74,7 @@ public class PythonActivity extends Activity {
 
         Log.v(TAG, "Ready to unpack");
         File app_root_file = new File(getAppRoot());
-        PythonUtil.unpackAsset(mActivity, "private", app_root_file, true);
-        PythonUtil.unpackPyBundle(mActivity, getApplicationInfo().nativeLibraryDir + "/" + "libpybundle", app_root_file, false);
+        PythonUtil.unpackData(mActivity, "private", app_root_file, true);
 
         Log.v(TAG, "About to do super onCreate");
         super.onCreate(savedInstanceState);

@@ -106,8 +106,7 @@ public class PythonActivity extends Activity {
         protected String doInBackground(String... params) {
             File app_root_file = new File(params[0]);
             Log.v(TAG, "Ready to unpack");
-            PythonUtil.unpackAsset(mActivity, "private", app_root_file, true);
-            PythonUtil.unpackPyBundle(mActivity, getApplicationInfo().nativeLibraryDir + "/" + "libpybundle", app_root_file, false);
+            PythonUtil.unpackData(mActivity, "private", app_root_file, true);
             return null;
         }
 

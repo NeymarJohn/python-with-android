@@ -103,7 +103,6 @@ setup(name='python-for-android',
           'distutils.commands': [
               'apk = pythonforandroid.bdistapk:BdistAPK',
               'aar = pythonforandroid.bdistapk:BdistAAR',
-              'aab = pythonforandroid.bdistapk:BdistAAB',
               ],
           },
       classifiers=[

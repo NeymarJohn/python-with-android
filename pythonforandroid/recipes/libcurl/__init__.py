@@ -25,7 +25,7 @@ class LibcurlRecipe(Recipe):
             dst_dir = join(self.get_build_dir(arch.arch), 'dist')
             shprint(
                 sh.Command('./configure'),
-                '--host={}'.format(arch.command_prefix),
+                '--host=arm-linux-androideabi',
                 '--enable-shared',
                 '--with-ssl={}'.format(openssl_dir),
                 '--prefix={}'.format(dst_dir),

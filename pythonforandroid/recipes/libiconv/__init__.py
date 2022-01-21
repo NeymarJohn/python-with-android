@@ -21,7 +21,7 @@ class LibIconvRecipe(Recipe):
             shprint(
                 sh.Command('./configure'),
                 '--host=' + arch.command_prefix,
-                '--prefix=' + self.ctx.get_python_install_dir(arch.arch),
+                '--prefix=' + self.ctx.get_python_install_dir(),
                 _env=env)
             shprint(sh.make, '-j' + str(cpu_count()), _env=env)
 

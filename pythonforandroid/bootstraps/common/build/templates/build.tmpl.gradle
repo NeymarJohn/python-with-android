@@ -5,7 +5,7 @@ buildscript {
        jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.5.4'
+        classpath 'com.android.tools.build:gradle:3.5.2'
     }
 }
 
@@ -39,16 +39,11 @@ android {
         manifestPlaceholders = {{ args.manifest_placeholders}}
     }
 
-	
+	{% if debug_build -%}
 	packagingOptions {
-        {% if debug_build -%}
-        doNotStrip '**/*.so'
-        {% else %}
-        exclude 'lib/**/gdbserver'
-        exclude 'lib/**/gdb.setup'
-        {%- endif %}
+		doNotStrip '**/*.so'
 	}
-	
+	{%- endif %}
 
 	{% if args.sign -%}
 	signingConfigs {
@@ -104,10 +99,6 @@ android {
 
             }
         }
-    }
-
-    aaptOptions {
-        noCompress "tflite"
     }
 
 }

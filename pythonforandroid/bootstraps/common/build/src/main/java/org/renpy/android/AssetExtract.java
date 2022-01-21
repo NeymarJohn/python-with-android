@@ -13,7 +13,6 @@ import java.io.OutputStream;
 import java.io.FileOutputStream;
 import java.io.FileNotFoundException;
 import java.io.File;
-import java.io.FileInputStream;
 
 import java.util.zip.GZIPInputStream;
 
@@ -29,7 +28,7 @@ public class AssetExtract {
         mAssetManager = context.getAssets();
     }
 
-    public boolean extractTar(String asset, String target, String method) {
+    public boolean extractTar(String asset, String target) {
 
         byte buf[] = new byte[1024 * 1024];
 
@@ -37,12 +36,7 @@ public class AssetExtract {
         TarInputStream tis = null;
 
         try {
-            if(method == "private"){
-                assetStream = mAssetManager.open(asset, AssetManager.ACCESS_STREAMING);
-            } else if (method == "pybundle") {
-                assetStream = new FileInputStream(asset);
-            }
-            
+            assetStream = mAssetManager.open(asset, AssetManager.ACCESS_STREAMING);
             tis = new TarInputStream(new BufferedInputStream(new GZIPInputStream(new BufferedInputStream(assetStream, 8192)), 8192));
         } catch (IOException e) {
             Log.e("python", "opening up extract tar", e);
