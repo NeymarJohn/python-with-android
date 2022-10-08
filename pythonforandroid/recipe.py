@@ -213,26 +213,24 @@ class Recipe(metaclass=RecipeMeta):
                 break
             return target
         elif parsed_url.scheme in ('git', 'git+file', 'git+ssh', 'git+http', 'git+https'):
-            if not isdir(target):
+            if isdir(target):
+                with current_directory(target):
+                    shprint(sh.git, 'fetch', '--tags', '--recurse-submodules')
+                    if self.version:
+                        shprint(sh.git, 'checkout', self.version)
+                    branch = sh.git('branch', '--show-current')
+                    if branch:
+                        shprint(sh.git, 'pull')
+                        shprint(sh.git, 'pull', '--recurse-submodules')
+                    shprint(sh.git, 'submodule', 'update', '--recursive')
+            else:
                 if url.startswith('git+'):
                     url = url[4:]
-                # if 'version' is specified, do a shallow clone
+                shprint(sh.git, 'clone', '--recursive', url, target)
                 if self.version:
-                    shprint(sh.mkdir, '-p', target)
                     with current_directory(target):
-                        shprint(sh.git, 'init')
-                        shprint(sh.git, 'remote', 'add', 'origin', url)
-                else:
-                    shprint(sh.git, 'clone', '--recursive', url, target)
-            with current_directory(target):
-                if self.version:
-                    shprint(sh.git, 'fetch', '--depth', '1', 'origin', self.version)
-                    shprint(sh.git, 'checkout', self.version)
-                branch = sh.git('branch', '--show-current')
-                if branch:
-                    shprint(sh.git, 'pull')
-                    shprint(sh.git, 'pull', '--recurse-submodules')
-                shprint(sh.git, 'submodule', 'update', '--recursive', '--init', '--depth', '1')
+                        shprint(sh.git, 'checkout', self.version)
+                        shprint(sh.git, 'submodule', 'update', '--recursive')
             return target
 
     def apply_patch(self, filename, arch, build_dir=None):
