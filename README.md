@@ -58,15 +58,6 @@ With everything installed, build an APK with SDL2 with e.g.:
 **For full instructions and parameter options,** see [the
 documentation](https://python-for-android.readthedocs.io/en/latest/quickstart/#usage).
 
-## Support
-
-If you need assistance, you can ask for help on our mailing list:
-
--  User Group: https://groups.google.com/group/kivy-users
--  Email: kivy-users@googlegroups.com
-
-We also have [#support Discord channel](https://chat.kivy.org/).
-
 ## Contributing
 
 We love pull requests and discussing novel ideas. Check out the Kivy
