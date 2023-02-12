@@ -29,15 +29,9 @@ For documentation and support, see:
 
 ## Documentation
 
-Follow the [quickstart
-instructions](<https://python-for-android.readthedocs.org/en/latest/quickstart/>)
-to install and begin creating APKs and AABs.
-
 **Quick instructions**: install python-for-android with:
 
     pip install python-for-android
-
-(for the develop branch: `pip install git+https://github.com/kivy/python-for-android.git`)
 
 Test that the install works with:
 
@@ -58,11 +52,6 @@ With everything installed, build an APK with SDL2 with e.g.:
 **For full instructions and parameter options,** see [the
 documentation](https://python-for-android.readthedocs.io/en/latest/quickstart/#usage).
 
-## Contributing
-
-We love pull requests and discussing novel ideas. Check out the Kivy
-project [contribution guide](https://kivy.org/doc/stable/contribute.html) and
-feel free to improve python-for-android.
 
 See [our
 documentation](https://python-for-android.readthedocs.io/en/latest/contribute/)
@@ -73,11 +62,6 @@ make a pull request, we'll take care of the rest.
 The following mailing list and IRC channel are used exclusively for
 discussions about developing the Kivy framework and its sister projects:
 
--  Dev Group: https://groups.google.com/group/kivy-dev
--  Email: kivy-dev@googlegroups.com
-
-We also have [#dev Discord channel](https://chat.kivy.org/).
-
 ## License
 
 python-for-android is released under the terms of the MIT License.
@@ -86,9 +70,7 @@ Please refer to the LICENSE file.
 ## History
 
 In 2015 these tools were rewritten to provide a new, easier-to-use and
-easier-to-extend interface. If you'd like to browse the old toolchain, its
-status is recorded for posterity at at
-https://github.com/kivy/python-for-android/tree/old_toolchain.
+easier-to-extend interface.
 
 In the last quarter of 2018 the python recipes were changed. The
 new recipe for python3 (3.7.1) had a new build system which was
